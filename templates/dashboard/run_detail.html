@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}{{ run.workflow_name }} #{{ run.run_number }} - {{ site_name() }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ static_url('css/dashboard.css') }}">
+{% endblock %}
+
+{% block masthead %}
+<header class="sk-masthead">
+    <h1><a href="/dashboard" style="color: inherit; text-decoration: none;">{{ site_name() }}</a></h1>
+    <p class="sk-tagline">GitHub Actions Dashboard</p>
+</header>
+{% endblock %}
+
+{% block content %}
+<nav class="dash-breadcrumb">
+    <a href="/dashboard">Dashboard</a> &rsaquo;
+    <span>{{ run.workflow_name }} #{{ run.run_number }}</span>
+</nav>
+
+<section class="run-detail">
+    <div class="run-detail-header run-{{ run.conclusion or run.status }}">
+        <div class="run-detail-status">
+            {% if run.status == 'completed' %}
+                {% if run.conclusion == 'success' %}
+                    <span class="status-badge success">Success</span>
+                {% elif run.conclusion == 'failure' %}
+                    <span class="status-badge failure">Failed</span>
+                {% elif run.conclusion == 'cancelled' %}
+                    <span class="status-badge cancelled">Cancelled</span>
+                {% else %}
+                    <span class="status-badge neutral">{{ run.conclusion }}</span>
+                {% endif %}
+            {% elif run.status == 'in_progress' %}
+                <span class="status-badge in-progress"><span class="spinner"></span> In Progress</span>
+            {% else %}
+                <span class="status-badge queued">{{ run.status|title }}</span>
+            {% endif %}
+        </div>
+        <h2 class="run-detail-title">{{ run.workflow_name }}</h2>
+        <div class="run-detail-meta">
+            <span><strong>Repository:</strong> {{ run.repo_full_name }}</span>
+            <span><strong>Branch:</strong> {{ run.head_branch }}</span>
+            {% if run.head_sha %}
+            <span><strong>Commit:</strong> <code>{{ run.head_sha[:7] }}</code></span>
+            {% endif %}
+            <span><strong>Trigger:</strong> {{ run.event }}</span>
+            <span><strong>Run:</strong> #{{ run.run_number }} (attempt {{ run.run_attempt }})</span>
+            {% if run.actor_login %}
+            <span><strong>Actor:</strong> {{ run.actor_login }}</span>
+            {% endif %}
+        </div>
+        <a href="{{ run.html_url }}" target="_blank" rel="noopener" class="btn-github">View on GitHub &#x2197;</a>
+    </div>
+
+    {% if jobs %}
+    <h3 class="dash-section-title">Jobs</h3>
+    <div class="jobs-list" id="jobs-list" data-run-id="{{ run.run_id }}">
+        {% for job in jobs %}
+        <article class="job-card job-{{ job.conclusion or job.status }}" data-job-id="{{ job.job_id }}" id="job-{{ job.job_id }}">
+            <div class="job-status-indicator">
+                {% if job.status == 'completed' %}
+                    {% if job.conclusion == 'success' %}
+                        <span class="status-icon success">&#10003;</span>
+                    {% elif job.conclusion == 'failure' %}
+                        <span class="status-icon failure">&#10007;</span>
+                    {% elif job.conclusion == 'cancelled' %}
+                        <span class="status-icon cancelled">&#9711;</span>
+                    {% else %}
+                        <span class="status-icon neutral">&#8226;</span>
+                    {% endif %}
+                {% elif job.status == 'in_progress' %}
+                    <span class="status-icon in-progress"><span class="spinner"></span></span>
+                {% else %}
+                    <span class="status-icon queued">&#9679;</span>
+                {% endif %}
+            </div>
+            <div class="job-info">
+                <span class="job-name">{{ job.name }}</span>
+                {% if job.runner_name %}
+                <span class="job-runner">{{ job.runner_name }}</span>
+                {% endif %}
+            </div>
+            <div class="job-actions">
+                <a href="{{ job.html_url }}" target="_blank" rel="noopener" class="run-link" title="View on GitHub">&#x2197;</a>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>No job data received yet for this run.</p>
+        <p class="empty-hint">Enable the <strong>workflow_job</strong> webhook event for per-job tracking.</p>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block nav_links %}
+<a href="/dashboard" class="sk-bottombar-link">Dashboard</a>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ static_url('js/dashboard.js') }}"></script>
+{% endblock %}

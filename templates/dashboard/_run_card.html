@@ -1,0 +1,48 @@
+<article class="run-card run-{{ run.conclusion or run.status }}" data-run-id="{{ run.run_id }}" id="run-{{ run.run_id }}">
+    <div class="run-status-indicator">
+        {% if run.status == 'completed' %}
+            {% if run.conclusion == 'success' %}
+                <span class="status-icon success" title="Success">&#10003;</span>
+            {% elif run.conclusion == 'failure' %}
+                <span class="status-icon failure" title="Failed">&#10007;</span>
+            {% elif run.conclusion == 'cancelled' %}
+                <span class="status-icon cancelled" title="Cancelled">&#9711;</span>
+            {% else %}
+                <span class="status-icon neutral" title="{{ run.conclusion }}">&#8226;</span>
+            {% endif %}
+        {% elif run.status == 'in_progress' %}
+            <span class="status-icon in-progress" title="In Progress">
+                <span class="spinner"></span>
+            </span>
+        {% else %}
+            <span class="status-icon queued" title="{{ run.status }}">&#9679;</span>
+        {% endif %}
+    </div>
+    <div class="run-info">
+        <div class="run-header">
+            <a href="/dashboard/runs/{{ run.run_id }}" class="run-workflow-name">{{ run.workflow_name }}</a>
+            <span class="run-repo">{{ run.repo_full_name }}</span>
+        </div>
+        <div class="run-meta">
+            <span class="run-branch" title="Branch">{{ run.head_branch or 'unknown' }}</span>
+            {% if run.head_sha %}
+            <span class="run-sha" title="Commit">{{ run.head_sha[:7] }}</span>
+            {% endif %}
+            <span class="run-event">{{ run.event }}</span>
+            <span class="run-number">#{{ run.run_number }}</span>
+        </div>
+    </div>
+    <div class="run-actor">
+        {% if run.actor_avatar_url %}
+        <img src="{{ run.actor_avatar_url }}" alt="{{ run.actor_login }}" class="actor-avatar" width="24" height="24">
+        {% endif %}
+        {% if run.actor_login %}
+        <span class="actor-name">{{ run.actor_login }}</span>
+        {% endif %}
+    </div>
+    <div class="run-actions">
+        <a href="{{ run.html_url }}" target="_blank" rel="noopener" class="run-link" title="View on GitHub">
+            &#x2197;
+        </a>
+    </div>
+</article>

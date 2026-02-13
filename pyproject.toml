@@ -1,0 +1,9 @@
+[project]
+name = "actiondash"
+version = "0.1.0"
+description = "Realtime GitHub Actions dashboard built with Skrift"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "skrift>=0.1.0a25",
+]

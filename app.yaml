@@ -1,0 +1,32 @@
+db:
+  url: "sqlite+aiosqlite:///./actiondash.db"
+
+auth:
+  redirect_base_url: "http://localhost:8000"
+  allowed_redirect_domains:
+    - "localhost"
+  providers:
+    github:
+      client_id: "$GITHUB_OAUTH_CLIENT_ID"
+      client_secret: "$GITHUB_OAUTH_CLIENT_SECRET"
+      scopes: ["read:user", "user:email"]
+    dummy: {}
+
+session:
+  max_age: 604800
+
+security_headers:
+  enabled: true
+  csp_nonce: true
+  content_security_policy: "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; script-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'self'"
+
+rate_limit:
+  enabled: true
+  requests_per_minute: 120
+  auth_requests_per_minute: 10
+  paths:
+    "/webhooks": 300
+
+controllers:
+  - actiondash.controllers:DashboardController
+  - actiondash.controllers:WebhookController

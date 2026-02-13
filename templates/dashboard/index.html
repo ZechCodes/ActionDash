@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - {{ site_name() }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ static_url('css/dashboard.css') }}">
+{% endblock %}
+
+{% block masthead %}
+<header class="sk-masthead">
+    <h1><a href="/dashboard" style="color: inherit; text-decoration: none;">{{ site_name() }}</a></h1>
+    <p class="sk-tagline">GitHub Actions Dashboard</p>
+</header>
+{% endblock %}
+
+{% block content %}
+<section class="dash-stats" id="stats-bar">
+    <div class="stat-card stat-active">
+        <span class="stat-value" id="stat-active">{{ stats.active_count }}</span>
+        <span class="stat-label">Active</span>
+    </div>
+    <div class="stat-card stat-success">
+        <span class="stat-value" id="stat-success">{{ stats.success_count }}</span>
+        <span class="stat-label">Succeeded</span>
+    </div>
+    <div class="stat-card stat-failure">
+        <span class="stat-value" id="stat-failure">{{ stats.failure_count }}</span>
+        <span class="stat-label">Failed</span>
+    </div>
+    <div class="stat-card stat-rate">
+        <span class="stat-value" id="stat-rate">{{ stats.success_rate }}%</span>
+        <span class="stat-label">Success Rate</span>
+    </div>
+</section>
+
+{% if active_runs %}
+<section class="dash-section">
+    <h2 class="dash-section-title">
+        <span class="pulse-dot"></span> Active Runs
+    </h2>
+    <div class="run-list" id="active-runs">
+        {% for run in active_runs %}
+        {% include "dashboard/_run_card.html" %}
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section class="dash-section">
+    <h2 class="dash-section-title">Recent Runs</h2>
+    <div class="run-list" id="recent-runs">
+        {% for run in recent_runs %}
+        {% include "dashboard/_run_card.html" %}
+        {% endfor %}
+        {% if not recent_runs %}
+        <div class="empty-state">
+            <p>No workflow runs yet.</p>
+            <p class="empty-hint">Configure a GitHub webhook pointing to <code>/webhooks/github</code> with <strong>workflow_run</strong> and <strong>workflow_job</strong> events.</p>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block nav_links %}
+<a href="/dashboard" class="sk-bottombar-link">Dashboard</a>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ static_url('js/dashboard.js') }}"></script>
+{% endblock %}
