@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: actiondash-init-db
+  namespace: zechsh
+  labels:
+    app: actiondash
+    component: init-db
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: actiondash-init-db
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: init-db
+          image: zzmmrmn/actiondash:latest
+          command: ["uv", "run", "python", "-m", "actiondash.initdb"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: actiondash-secrets
+                  key: database-url
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
