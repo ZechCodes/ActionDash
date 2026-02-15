@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: actiondash
+      POSTGRES_USER: actiondash
+      POSTGRES_PASSWORD: devpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U actiondash"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  init-db:
+    build: .
+    command: ["uv", "run", "python", "-m", "actiondash.initdb"]
+    environment:
+      SKRIFT_ENV: compose
+      DATABASE_URL: "postgresql+asyncpg://actiondash:devpassword@db:5432/actiondash"
+      AUTH_REDIRECT_BASE_URL: "http://localhost:8080"
+      SECRET_KEY: "local-dev-secret-key-not-for-production"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      SKRIFT_ENV: compose
+      DATABASE_URL: "postgresql+asyncpg://actiondash:devpassword@db:5432/actiondash"
+      AUTH_REDIRECT_BASE_URL: "http://localhost:8080"
+      SECRET_KEY: "local-dev-secret-key-not-for-production"
+    depends_on:
+      db:
+        condition: service_healthy
+      init-db:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:

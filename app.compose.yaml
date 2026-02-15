@@ -1,0 +1,24 @@
+db:
+  url: "$DATABASE_URL"
+
+auth:
+  redirect_base_url: "$AUTH_REDIRECT_BASE_URL"
+  allowed_redirect_domains:
+    - "localhost"
+  providers:
+    dummy: {}
+
+session:
+  max_age: 604800
+
+security_headers:
+  enabled: false
+
+rate_limit:
+  enabled: false
+
+controllers:
+  - skrift.controllers.auth:AuthController
+  - skrift.admin.controller:AdminController
+  - actiondash.controllers:DashboardController
+  - actiondash.controllers:WebhookController
