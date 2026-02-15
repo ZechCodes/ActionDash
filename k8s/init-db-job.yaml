@@ -18,12 +18,35 @@ spec:
         - name: init-db
           image: zzmmrmn/actiondash:latest
           command: ["uv", "run", "python", "-m", "actiondash.initdb"]
+          envFrom:
+            - configMapRef:
+                name: actiondash-config
           env:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   name: actiondash-secrets
                   key: database-url
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: actiondash-secrets
+                  key: secret-key
+            - name: GITHUB_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: actiondash-secrets
+                  key: github-webhook-secret
+            - name: GITHUB_OAUTH_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: actiondash-secrets
+                  key: github-oauth-client-id
+            - name: GITHUB_OAUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: actiondash-secrets
+                  key: github-oauth-client-secret
           resources:
             requests:
               memory: "128Mi"
