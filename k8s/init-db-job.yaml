@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: actiondash-init-db
-  namespace: zechsh
+  namespace: zechcodes
   labels:
     app: actiondash
     component: init-db

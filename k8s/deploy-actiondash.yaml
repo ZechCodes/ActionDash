@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: actiondash
-  namespace: zechsh
+  namespace: zechcodes
   labels:
     app: actiondash
 spec:

@@ -52,10 +52,10 @@ jobs:
       - name: Configure kubectl
         run: |
           doctl kubernetes cluster kubeconfig save production-hosting
-          kubectl config set-context --current --namespace=zechsh
+          kubectl config set-context --current --namespace=zechcodes
 
       - name: Create namespace
-        run: kubectl create namespace zechsh --dry-run=client -o yaml | kubectl apply -f -
+        run: kubectl create namespace zechcodes --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Apply ConfigMap
         run: kubectl apply -f k8s/configmap.yaml
@@ -63,7 +63,7 @@ jobs:
       - name: Apply Secrets
         run: |
           kubectl create secret generic actiondash-secrets \
-            --namespace=zechsh \
+            --namespace=zechcodes \
             --from-literal=database-url="${{ secrets.ACTIONDASH_DATABASE_URL }}" \
             --from-literal=secret-key="${{ secrets.ACTIONDASH_SECRET_KEY }}" \
             --from-literal=github-webhook-secret="${{ secrets.ACTIONDASH_GITHUB_WEBHOOK_SECRET }}" \

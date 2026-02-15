@@ -48,7 +48,7 @@ jobs:
       - name: Configure kubectl
         run: |
           doctl kubernetes cluster kubeconfig save production-hosting
-          kubectl config set-context --current --namespace=zechsh
+          kubectl config set-context --current --namespace=zechcodes
 
       - name: Update deployment image
         run: |

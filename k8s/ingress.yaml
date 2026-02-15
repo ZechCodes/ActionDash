@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: actiondash-ingress
-  namespace: zechsh
+  namespace: zechcodes
   labels:
     app: actiondash
   annotations:
