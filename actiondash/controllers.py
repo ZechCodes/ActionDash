@@ -205,9 +205,9 @@ class RepoController(Controller):
             status_code=200,
         )
 
-    @post("/{repo_full_name:path}/monitor")
+    @post("/{owner:str}/{repo:str}/monitor")
     async def enable_monitoring(
-        self, request: Request, db_session: AsyncSession, repo_full_name: str
+        self, request: Request, db_session: AsyncSession, owner: str, repo: str
     ) -> Response:
         """Enable monitoring for a repo (creates a webhook)."""
         from actiondash.github_client import GitHubClient
@@ -218,6 +218,8 @@ class RepoController(Controller):
             get_webhook_url,
             set_repo_monitored,
         )
+
+        repo_full_name = f"{owner}/{repo}"
 
         user = await self._get_user(request, db_session)
         if not user:
@@ -261,9 +263,9 @@ class RepoController(Controller):
             content={"ok": True, "repo": monitored.to_dict()}, status_code=200
         )
 
-    @delete("/{repo_full_name:path}/monitor", status_code=200)
+    @delete("/{owner:str}/{repo:str}/monitor", status_code=200)
     async def disable_monitoring(
-        self, request: Request, db_session: AsyncSession, repo_full_name: str
+        self, request: Request, db_session: AsyncSession, owner: str, repo: str
     ) -> Response:
         """Disable monitoring for a repo (deletes the webhook)."""
         from actiondash.github_client import GitHubClient
@@ -271,6 +273,8 @@ class RepoController(Controller):
             get_user_github_token,
             remove_repo_monitored,
         )
+
+        repo_full_name = f"{owner}/{repo}"
 
         user = await self._get_user(request, db_session)
         if not user:
