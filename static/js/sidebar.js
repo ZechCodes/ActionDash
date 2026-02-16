@@ -119,11 +119,9 @@
     // --- Navigation ---
 
     function navigateToRepo(repoFullName) {
-        var url = new URL(window.location.href);
+        var url = new URL("/", window.location.origin);
         if (repoFullName) {
             url.searchParams.set("repo", repoFullName);
-        } else {
-            url.searchParams.delete("repo");
         }
         window.location.href = url.toString();
     }

@@ -238,21 +238,25 @@ class RepoController(Controller):
             return Response(content={"error": "Repo not found"}, status_code=404)
 
         # Create webhook on GitHub
-        webhook_id = None
         secret = get_webhook_secret()
-        if secret:
-            try:
-                client = GitHubClient(token)
-                hook = await client.create_webhook(
-                    repo_full_name, get_webhook_url(), secret
-                )
-                webhook_id = hook["id"]
-            except Exception:
-                log.exception("Failed to create webhook for %s", repo_full_name)
-                return Response(
-                    content={"error": "Failed to create webhook"},
-                    status_code=502,
-                )
+        if not secret:
+            log.error("GITHUB_WEBHOOK_SECRET not configured")
+            return Response(
+                content={"error": "Webhook secret not configured"},
+                status_code=500,
+            )
+        try:
+            client = GitHubClient(token)
+            hook = await client.create_webhook(
+                repo_full_name, get_webhook_url(), secret
+            )
+            webhook_id = hook["id"]
+        except Exception:
+            log.exception("Failed to create webhook for %s", repo_full_name)
+            return Response(
+                content={"error": "Failed to create webhook"},
+                status_code=502,
+            )
 
         monitored = await set_repo_monitored(
             db_session, user.id, repo_data, webhook_id
