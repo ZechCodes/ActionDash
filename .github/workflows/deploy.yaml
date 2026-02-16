@@ -50,12 +50,6 @@ jobs:
           doctl kubernetes cluster kubeconfig save production-hosting
           kubectl config set-context --current --namespace=zechcodes
 
-      - name: Run database migrations
-        run: |
-          kubectl delete job actiondash-init-db --ignore-not-found
-          sed "s|image: zzmmrmn/actiondash:latest|image: ${{ env.IMAGE }}:${{ steps.version.outputs.TAG }}|" k8s/init-db-job.yaml | kubectl apply -f -
-          kubectl wait --for=condition=complete job/actiondash-init-db --timeout=180s
-
       - name: Clean up stuck rollout
         run: |
           # If a previous rollout is stuck, scale to 0 to clear it
