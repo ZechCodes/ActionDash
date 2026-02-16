@@ -47,8 +47,8 @@ class WorkflowRun(Base):
     html_url: Mapped[str] = mapped_column(Text)
     actor_login: Mapped[str | None] = mapped_column(String(255), nullable=True)
     actor_avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
-    run_started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    run_completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    run_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    run_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         Index("ix_workflow_runs_repo_status", "repo_full_name", "status"),
@@ -90,8 +90,8 @@ class WorkflowJob(Base):
     conclusion: Mapped[str | None] = mapped_column(String(50), nullable=True)
     html_url: Mapped[str] = mapped_column(Text)
     runner_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         Index("ix_workflow_jobs_run_id_status", "run_id", "status"),
