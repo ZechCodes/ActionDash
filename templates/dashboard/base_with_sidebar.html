@@ -3,16 +3,14 @@
 {% block title %}{% block page_title %}Dashboard{% endblock %} - {{ site_name() }}{% endblock %}
 
 {% block head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Chakra+Petch:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ static_url('css/dashboard.css') }}">
 {% block extra_head %}{% endblock %}
 {% endblock %}
 
-{% block masthead %}
-<header class="sk-masthead">
-    <h1><a href="/" class="masthead-link">{{ site_name() }}</a></h1>
-    <p class="sk-tagline">GitHub Actions Dashboard</p>
-</header>
-{% endblock %}
+{% block masthead %}{% endblock %}
 
 {% block content %}
 <div class="dash-layout">
@@ -28,27 +26,28 @@
         </div>
 
         <div class="sidebar-search">
-            <input type="text" id="repo-search" class="sidebar-search-input" placeholder="Filter repos..." autocomplete="off">
+            <span class="search-icon">&#9906;</span>
+            <input type="text" id="repo-search" class="sidebar-search-input" placeholder="Search repos..." autocomplete="off">
         </div>
 
         <nav class="sidebar-repo-list" id="repo-list">
-            <a href="/" class="sidebar-repo-item sidebar-all-repos{% if not current_repo %} active{% endif %}">
-                All Repos
-            </a>
+            {% if has_github %}
             <div id="repo-items">
-                {% if not has_github %}
-                <div class="sidebar-placeholder">
-                    <p>Connect GitHub to manage repos</p>
-                    <a href="/auth/login/github" class="sidebar-connect-btn">Connect GitHub</a>
-                </div>
-                {% else %}
                 <div class="sidebar-loading">Loading repos...</div>
-                {% endif %}
             </div>
+            {% else %}
+            <div class="sidebar-placeholder">
+                <p>Connect GitHub to manage repos</p>
+                <a href="/auth/login/github" class="sidebar-connect-btn">Connect GitHub</a>
+            </div>
+            {% endif %}
         </nav>
     </aside>
 
     <div class="dash-main">
+        <header class="dash-masthead">
+            <h1 class="dash-masthead-title"><a href="/" class="masthead-link">{{ site_name() }}</a></h1>
+        </header>
         {% block dashboard_content %}{% endblock %}
     </div>
 </div>

@@ -8,65 +8,42 @@
 (function () {
     "use strict";
 
-    const RECONNECT_DELAY = 3000;
-    let eventSource = null;
-
     // Current repo filter from URL
     const currentRepo = new URLSearchParams(window.location.search).get("repo");
 
-    // --- Connection status indicator ---
+    // --- Connection status indicator (driven by Skrift's SSE events) ---
 
-    function createConnectionIndicator() {
-        const el = document.createElement("div");
-        el.className = "connection-status disconnected";
-        el.textContent = "Connecting...";
-        document.body.appendChild(el);
-        return el;
+    const indicator = document.createElement("div");
+    indicator.className = "connection-status disconnected";
+    indicator.textContent = "Connecting...";
+    var masthead = document.querySelector(".dash-masthead");
+    if (masthead) {
+        masthead.appendChild(indicator);
+    } else {
+        document.body.appendChild(indicator);
     }
 
-    const indicator = createConnectionIndicator();
-
-    function setConnected() {
-        indicator.className = "connection-status connected";
-        indicator.textContent = "Live";
-        // Fade out after 3s
-        setTimeout(() => { indicator.style.opacity = "0.4"; }, 3000);
-    }
-
-    function setDisconnected() {
-        indicator.className = "connection-status disconnected";
-        indicator.textContent = "Reconnecting...";
-        indicator.style.opacity = "1";
-    }
-
-    // --- SSE connection ---
-
-    function connect() {
-        if (eventSource) {
-            eventSource.close();
+    document.addEventListener("sk:notification-status", function (e) {
+        if (e.detail.status === "connected") {
+            indicator.className = "connection-status connected";
+            indicator.textContent = "Live";
+            setTimeout(function () { indicator.style.opacity = "0.4"; }, 3000);
+        } else if (e.detail.status === "suspended") {
+            indicator.className = "connection-status disconnected";
+            indicator.textContent = "Disconnected";
+            indicator.style.opacity = "1";
+        } else {
+            indicator.className = "connection-status disconnected";
+            indicator.textContent = "Reconnecting...";
+            indicator.style.opacity = "1";
         }
+    });
 
-        eventSource = new EventSource("/notifications/stream");
+    // --- Notification data (driven by Skrift's SSE events) ---
 
-        eventSource.addEventListener("notification", function (e) {
-            const data = JSON.parse(e.data);
-            handleNotification(data);
-        });
-
-        eventSource.addEventListener("sync", function () {
-            setConnected();
-        });
-
-        eventSource.addEventListener("open", function () {
-            // Connection opened, but wait for "sync" to confirm fully ready
-        });
-
-        eventSource.addEventListener("error", function () {
-            setDisconnected();
-            eventSource.close();
-            setTimeout(connect, RECONNECT_DELAY);
-        });
-    }
+    document.addEventListener("sk:notification", function (e) {
+        handleNotification(e.detail);
+    });
 
     // --- Notification handler ---
 
@@ -322,6 +299,5 @@
         return div.innerHTML;
     }
 
-    // --- Init ---
-    connect();
+    // --- Init (no-op: Skrift's notifications.js owns the SSE connection) ---
 })();
