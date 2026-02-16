@@ -51,6 +51,8 @@ spec:
                 secretKeyRef:
                   name: actiondash-secrets
                   key: github-webhook-secret
+            - name: REDIS_URL
+              value: "redis://redis.infra.svc.cluster.local:6379/0"
             - name: GITHUB_OAUTH_CLIENT_ID
               valueFrom:
                 secretKeyRef:

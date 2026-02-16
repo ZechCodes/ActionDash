@@ -6,5 +6,6 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "asyncpg",
+    "redis>=5.0",
     "skrift>=0.1.0a28",
 ]

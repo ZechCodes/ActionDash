@@ -24,6 +24,13 @@ security_headers:
   csp_nonce: true
   content_security_policy: "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; script-src 'self'; connect-src 'self' https://api.github.com; form-action 'self'; base-uri 'self'"
 
+redis:
+  url: "$REDIS_URL"
+  prefix: "actiondash"
+
+notifications:
+  backend: "skrift.lib.notification_backends:RedisBackend"
+
 rate_limit:
   enabled: true
   requests_per_minute: 120
