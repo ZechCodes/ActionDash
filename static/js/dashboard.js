@@ -251,7 +251,7 @@
             <div class="run-status-indicator">${statusIcon}</div>
             <div class="run-info">
                 <div class="run-header">
-                    <a href="/dashboard/runs/${run.run_id}" class="run-workflow-name">${escapeHtml(run.workflow_name)}</a>
+                    <a href="/runs/${run.run_id}" class="run-workflow-name">${escapeHtml(run.workflow_name)}</a>
                     <span class="run-repo">${escapeHtml(run.repo_full_name)}</span>
                 </div>
                 <div class="run-meta">
@@ -291,7 +291,7 @@
     }
 
     function refreshStats() {
-        fetch("/dashboard/api/stats", { credentials: "same-origin" })
+        fetch("/api/stats", { credentials: "same-origin" })
             .then((r) => r.json())
             .then((stats) => {
                 setTextIfExists("stat-active", stats.active_count);

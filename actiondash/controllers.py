@@ -26,7 +26,7 @@ from actiondash.webhook import verify_signature
 class DashboardController(Controller):
     """Serves the dashboard UI and API endpoints."""
 
-    path = "/dashboard"
+    path = "/"
     guards = [auth_guard]
 
     @get("/")

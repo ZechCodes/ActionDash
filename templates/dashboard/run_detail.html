@@ -8,14 +8,14 @@
 
 {% block masthead %}
 <header class="sk-masthead">
-    <h1><a href="/dashboard" style="color: inherit; text-decoration: none;">{{ site_name() }}</a></h1>
+    <h1><a href="/" style="color: inherit; text-decoration: none;">{{ site_name() }}</a></h1>
     <p class="sk-tagline">GitHub Actions Dashboard</p>
 </header>
 {% endblock %}
 
 {% block content %}
 <nav class="dash-breadcrumb">
-    <a href="/dashboard">Dashboard</a> &rsaquo;
+    <a href="/">Dashboard</a> &rsaquo;
     <span>{{ run.workflow_name }} #{{ run.run_number }}</span>
 </nav>
 
@@ -95,10 +95,6 @@
     </div>
     {% endif %}
 </section>
-{% endblock %}
-
-{% block nav_links %}
-<a href="/dashboard" class="sk-bottombar-link">Dashboard</a>
 {% endblock %}
 
 {% block scripts %}

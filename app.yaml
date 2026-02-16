@@ -30,5 +30,6 @@ rate_limit:
 
 controllers:
   - skrift.controllers.auth:AuthController
+  - skrift.admin.controller:AdminController
   - actiondash.controllers:DashboardController
   - actiondash.controllers:WebhookController
