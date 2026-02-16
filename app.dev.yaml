@@ -23,4 +23,5 @@ controllers:
   - actiondash.controllers:DashboardController
   - actiondash.controllers:RepoController
   - actiondash.controllers:SettingsController
+  - actiondash.controllers:HealthController
   - actiondash.controllers:WebhookController

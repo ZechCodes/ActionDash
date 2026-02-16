@@ -440,6 +440,16 @@ class SettingsController(Controller):
         return token is not None
 
 
+class HealthController(Controller):
+    """Unauthenticated health check for k8s probes."""
+
+    path = "/healthz"
+
+    @get("/")
+    async def health(self) -> Response:
+        return Response(content={"ok": True}, status_code=200)
+
+
 class WebhookController(Controller):
     """Receives GitHub webhook events."""
 

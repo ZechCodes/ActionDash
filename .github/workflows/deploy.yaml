@@ -50,6 +50,9 @@ jobs:
           doctl kubernetes cluster kubeconfig save production-hosting
           kubectl config set-context --current --namespace=zechcodes
 
+      - name: Apply deployment manifest
+        run: kubectl apply -f k8s/deploy-actiondash.yaml
+
       - name: Update deployment image
         run: |
           kubectl set image deployment/actiondash \
