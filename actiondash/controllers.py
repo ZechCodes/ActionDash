@@ -1,17 +1,19 @@
 """Dashboard and webhook controllers for ActionDash."""
 
 import json
+import logging
+from uuid import UUID
 
-from litestar import Controller, Request, get, post
-from litestar.exceptions import NotAuthorizedException, NotFoundException
-from litestar.response import Redirect, Response
+from litestar import Controller, Request, get, post, delete
+from litestar.exceptions import NotFoundException
+from litestar.response import Response
 from litestar.response import Template as TemplateResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from skrift.auth.guards import auth_guard
 from skrift.lib.notifications import notify_broadcast
 
-from actiondash.models import WorkflowRun, WorkflowJob
+from actiondash.models import WorkflowRun
 from actiondash.services import (
     get_active_runs,
     get_jobs_for_run,
@@ -21,6 +23,8 @@ from actiondash.services import (
     upsert_workflow_run,
 )
 from actiondash.webhook import verify_signature
+
+log = logging.getLogger(__name__)
 
 
 class DashboardController(Controller):
@@ -34,9 +38,14 @@ class DashboardController(Controller):
         self, request: Request, db_session: AsyncSession
     ) -> TemplateResponse:
         """Main dashboard page."""
-        stats = await get_run_stats(db_session)
-        active_runs = await get_active_runs(db_session)
-        recent_runs = await get_recent_runs(db_session, limit=30)
+        repo = request.query_params.get("repo")
+        stats = await get_run_stats(db_session, repo_full_name=repo)
+        active_runs = await get_active_runs(db_session, repo_full_name=repo)
+        recent_runs = await get_recent_runs(
+            db_session, limit=30, repo_full_name=repo
+        )
+        user = await self._get_user(request, db_session)
+        has_github = await self._has_github_token(db_session, user) if user else False
 
         return TemplateResponse(
             "dashboard/index.html",
@@ -44,7 +53,9 @@ class DashboardController(Controller):
                 "stats": stats,
                 "active_runs": active_runs,
                 "recent_runs": recent_runs,
-                "user": await self._get_user(request, db_session),
+                "user": user,
+                "current_repo": repo,
+                "has_github": has_github,
             },
         )
 
@@ -63,13 +74,16 @@ class DashboardController(Controller):
             raise NotFoundException(f"Run {run_id} not found")
 
         jobs = await get_jobs_for_run(db_session, run_id)
+        user = await self._get_user(request, db_session)
+        has_github = await self._has_github_token(db_session, user) if user else False
 
         return TemplateResponse(
             "dashboard/run_detail.html",
             context={
                 "run": run,
                 "jobs": jobs,
-                "user": await self._get_user(request, db_session),
+                "user": user,
+                "has_github": has_github,
             },
         )
 
@@ -78,7 +92,10 @@ class DashboardController(Controller):
         self, request: Request, db_session: AsyncSession
     ) -> Response:
         """JSON API: recent workflow runs."""
-        recent = await get_recent_runs(db_session, limit=50)
+        repo = request.query_params.get("repo")
+        recent = await get_recent_runs(
+            db_session, limit=50, repo_full_name=repo
+        )
         return Response(
             content={"runs": [r.to_dict() for r in recent]},
             status_code=200,
@@ -89,7 +106,8 @@ class DashboardController(Controller):
         self, request: Request, db_session: AsyncSession
     ) -> Response:
         """JSON API: currently active runs."""
-        active = await get_active_runs(db_session)
+        repo = request.query_params.get("repo")
+        active = await get_active_runs(db_session, repo_full_name=repo)
         return Response(
             content={"runs": [r.to_dict() for r in active]},
             status_code=200,
@@ -100,11 +118,11 @@ class DashboardController(Controller):
         self, request: Request, db_session: AsyncSession
     ) -> Response:
         """JSON API: dashboard statistics."""
-        stats = await get_run_stats(db_session)
+        repo = request.query_params.get("repo")
+        stats = await get_run_stats(db_session, repo_full_name=repo)
         return Response(content=stats, status_code=200)
 
     async def _get_user(self, request: Request, db_session: AsyncSession):
-        from uuid import UUID
         from sqlalchemy import select
         from skrift.db.models.user import User
 
@@ -115,6 +133,311 @@ class DashboardController(Controller):
             select(User).where(User.id == UUID(user_id))
         )
         return result.scalar_one_or_none()
+
+    async def _has_github_token(self, db_session: AsyncSession, user) -> bool:
+        from actiondash.repo_services import get_user_github_token
+
+        if not user:
+            return False
+        token = await get_user_github_token(db_session, user.id)
+        return token is not None
+
+
+class RepoController(Controller):
+    """API endpoints for repo management and monitoring."""
+
+    path = "/api/repos"
+    guards = [auth_guard]
+
+    @get("/")
+    async def list_repos(
+        self, request: Request, db_session: AsyncSession
+    ) -> Response:
+        """List user's GitHub repos."""
+        from actiondash.repo_services import get_user_github_token, get_user_repos
+
+        user = await self._get_user(request, db_session)
+        if not user:
+            return Response(content={"error": "Not authenticated"}, status_code=401)
+
+        token = await get_user_github_token(db_session, user.id)
+        if not token:
+            return Response(content={"repos": [], "no_token": True}, status_code=200)
+
+        try:
+            force = request.query_params.get("refresh") == "1"
+            repos = await get_user_repos(token, user.id, force_refresh=force)
+            return Response(
+                content={
+                    "repos": [
+                        {
+                            "full_name": r["full_name"],
+                            "id": r["id"],
+                            "private": r.get("private", False),
+                            "description": r.get("description"),
+                            "default_branch": r.get("default_branch"),
+                        }
+                        for r in repos
+                    ]
+                },
+                status_code=200,
+            )
+        except Exception:
+            log.exception("Failed to fetch repos from GitHub")
+            return Response(
+                content={"error": "Failed to fetch repos"}, status_code=502
+            )
+
+    @get("/monitored")
+    async def list_monitored(
+        self, request: Request, db_session: AsyncSession
+    ) -> Response:
+        """List user's monitored repos."""
+        from actiondash.repo_services import get_monitored_repos
+
+        user = await self._get_user(request, db_session)
+        if not user:
+            return Response(content={"error": "Not authenticated"}, status_code=401)
+
+        monitored = await get_monitored_repos(db_session, user.id)
+        return Response(
+            content={"repos": [m.to_dict() for m in monitored]},
+            status_code=200,
+        )
+
+    @post("/{repo_full_name:path}/monitor")
+    async def enable_monitoring(
+        self, request: Request, db_session: AsyncSession, repo_full_name: str
+    ) -> Response:
+        """Enable monitoring for a repo (creates a webhook)."""
+        from actiondash.github_client import GitHubClient
+        from actiondash.repo_services import (
+            get_user_github_token,
+            get_user_repos,
+            get_webhook_secret,
+            get_webhook_url,
+            set_repo_monitored,
+        )
+
+        user = await self._get_user(request, db_session)
+        if not user:
+            return Response(content={"error": "Not authenticated"}, status_code=401)
+
+        token = await get_user_github_token(db_session, user.id)
+        if not token:
+            return Response(content={"error": "No GitHub token"}, status_code=400)
+
+        # Find repo data from cache or API
+        repos = await get_user_repos(token, user.id)
+        repo_data = next(
+            (r for r in repos if r["full_name"] == repo_full_name), None
+        )
+        if not repo_data:
+            return Response(content={"error": "Repo not found"}, status_code=404)
+
+        # Create webhook on GitHub
+        webhook_id = None
+        secret = get_webhook_secret()
+        if secret:
+            try:
+                client = GitHubClient(token)
+                hook = await client.create_webhook(
+                    repo_full_name, get_webhook_url(), secret
+                )
+                webhook_id = hook["id"]
+            except Exception:
+                log.exception("Failed to create webhook for %s", repo_full_name)
+                return Response(
+                    content={"error": "Failed to create webhook"},
+                    status_code=502,
+                )
+
+        monitored = await set_repo_monitored(
+            db_session, user.id, repo_data, webhook_id
+        )
+        await db_session.commit()
+
+        return Response(
+            content={"ok": True, "repo": monitored.to_dict()}, status_code=200
+        )
+
+    @delete("/{repo_full_name:path}/monitor")
+    async def disable_monitoring(
+        self, request: Request, db_session: AsyncSession, repo_full_name: str
+    ) -> Response:
+        """Disable monitoring for a repo (deletes the webhook)."""
+        from actiondash.github_client import GitHubClient
+        from actiondash.repo_services import (
+            get_user_github_token,
+            remove_repo_monitored,
+        )
+
+        user = await self._get_user(request, db_session)
+        if not user:
+            return Response(content={"error": "Not authenticated"}, status_code=401)
+
+        token = await get_user_github_token(db_session, user.id)
+
+        # Remove from DB (returns the record with webhook_id)
+        monitored = await remove_repo_monitored(db_session, user.id, repo_full_name)
+        if not monitored:
+            return Response(content={"error": "Repo not monitored"}, status_code=404)
+
+        # Delete webhook on GitHub if we have a token and webhook_id
+        if token and monitored.webhook_id:
+            try:
+                client = GitHubClient(token)
+                await client.delete_webhook(repo_full_name, monitored.webhook_id)
+            except Exception:
+                log.warning(
+                    "Failed to delete webhook %d for %s",
+                    monitored.webhook_id,
+                    repo_full_name,
+                )
+
+        await db_session.commit()
+        return Response(content={"ok": True}, status_code=200)
+
+    @post("/monitor-all")
+    async def monitor_all(
+        self, request: Request, db_session: AsyncSession
+    ) -> Response:
+        """Enable monitoring for all user repos."""
+        from actiondash.github_client import GitHubClient
+        from actiondash.repo_services import (
+            get_monitored_repos,
+            get_user_github_token,
+            get_user_repos,
+            get_webhook_secret,
+            get_webhook_url,
+            set_repo_monitored,
+        )
+
+        user = await self._get_user(request, db_session)
+        if not user:
+            return Response(content={"error": "Not authenticated"}, status_code=401)
+
+        token = await get_user_github_token(db_session, user.id)
+        if not token:
+            return Response(content={"error": "No GitHub token"}, status_code=400)
+
+        repos = await get_user_repos(token, user.id)
+        already_monitored = {
+            m.repo_full_name
+            for m in await get_monitored_repos(db_session, user.id)
+        }
+
+        secret = get_webhook_secret()
+        webhook_url = get_webhook_url()
+        client = GitHubClient(token)
+
+        results = {"enabled": 0, "skipped": 0, "failed": 0}
+        for repo_data in repos:
+            if repo_data["full_name"] in already_monitored:
+                results["skipped"] += 1
+                continue
+
+            webhook_id = None
+            if secret:
+                try:
+                    hook = await client.create_webhook(
+                        repo_data["full_name"], webhook_url, secret
+                    )
+                    webhook_id = hook["id"]
+                except Exception:
+                    log.warning(
+                        "Failed to create webhook for %s",
+                        repo_data["full_name"],
+                    )
+                    results["failed"] += 1
+                    continue
+
+            await set_repo_monitored(db_session, user.id, repo_data, webhook_id)
+            results["enabled"] += 1
+
+        await db_session.commit()
+        return Response(content={"ok": True, **results}, status_code=200)
+
+    async def _get_user(self, request: Request, db_session: AsyncSession):
+        from sqlalchemy import select
+        from skrift.db.models.user import User
+
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return None
+        result = await db_session.execute(
+            select(User).where(User.id == UUID(user_id))
+        )
+        return result.scalar_one_or_none()
+
+
+class SettingsController(Controller):
+    """Settings page and API."""
+
+    path = "/settings"
+    guards = [auth_guard]
+
+    @get("/")
+    async def settings_page(
+        self, request: Request, db_session: AsyncSession
+    ) -> TemplateResponse:
+        """Render the settings page."""
+        from actiondash.repo_services import get_user_github_token, get_user_settings
+
+        user = await self._get_user(request, db_session)
+        if not user:
+            return TemplateResponse("dashboard/settings.html", context={"user": None})
+
+        has_github = await self._has_github_token(db_session, user)
+        settings = await get_user_settings(db_session, user.id)
+
+        return TemplateResponse(
+            "dashboard/settings.html",
+            context={
+                "user": user,
+                "has_github": has_github,
+                "settings": settings,
+            },
+        )
+
+    @post("/auto-monitor")
+    async def toggle_auto_monitor(
+        self, request: Request, db_session: AsyncSession
+    ) -> Response:
+        """Toggle auto-monitor preference (stub for future GitHub App)."""
+        from actiondash.repo_services import update_user_settings
+
+        user = await self._get_user(request, db_session)
+        if not user:
+            return Response(content={"error": "Not authenticated"}, status_code=401)
+
+        body = await request.json()
+        enabled = bool(body.get("enabled", False))
+        await update_user_settings(
+            db_session, user.id, auto_monitor_new_repos=enabled
+        )
+        await db_session.commit()
+        return Response(content={"ok": True, "enabled": enabled}, status_code=200)
+
+    async def _get_user(self, request: Request, db_session: AsyncSession):
+        from sqlalchemy import select
+        from skrift.db.models.user import User
+
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return None
+        result = await db_session.execute(
+            select(User).where(User.id == UUID(user_id))
+        )
+        return result.scalar_one_or_none()
+
+    async def _has_github_token(self, db_session: AsyncSession, user) -> bool:
+        from actiondash.repo_services import get_user_github_token
+
+        if not user:
+            return False
+        token = await get_user_github_token(db_session, user.id)
+        return token is not None
 
 
 class WebhookController(Controller):

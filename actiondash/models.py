@@ -2,8 +2,9 @@
 
 from datetime import datetime
 from enum import StrEnum
+from uuid import UUID
 
-from sqlalchemy import String, Text, DateTime, Integer, Index
+from sqlalchemy import Boolean, ForeignKey, Integer, Index, String, Text, DateTime, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from skrift.db.base import Base
@@ -110,3 +111,46 @@ class WorkflowJob(Base):
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
         }
+
+
+class MonitoredRepo(Base):
+    """Tracks which repos a user has enabled for monitoring."""
+
+    __tablename__ = "monitored_repos"
+
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    repo_full_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    repo_github_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    webhook_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    is_private: Mapped[bool] = mapped_column(Boolean, default=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    default_branch: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "repo_full_name", name="uq_user_repo"),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": str(self.id),
+            "user_id": str(self.user_id),
+            "repo_full_name": self.repo_full_name,
+            "repo_github_id": self.repo_github_id,
+            "webhook_id": self.webhook_id,
+            "is_private": self.is_private,
+            "description": self.description,
+            "default_branch": self.default_branch,
+        }
+
+
+class UserSettings(Base):
+    """Per-user settings for ActionDash."""
+
+    __tablename__ = "user_settings"
+
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False
+    )
+    auto_monitor_new_repos: Mapped[bool] = mapped_column(Boolean, default=False)

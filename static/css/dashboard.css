@@ -419,6 +419,300 @@
     flex-shrink: 0;
 }
 
+/* Sidebar layout */
+.dash-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 0;
+    min-height: 60vh;
+}
+
+.dash-sidebar {
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow-y: auto;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    padding: 1rem 0;
+}
+
+.dash-main {
+    padding: 0 1.5rem;
+    min-width: 0;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.75rem;
+}
+
+.sidebar-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+}
+
+.sidebar-settings-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+}
+
+.sidebar-settings-link:hover {
+    color: var(--accent);
+    background: var(--bg-tertiary);
+}
+
+.sidebar-search {
+    padding: 0 0.75rem 0.75rem;
+}
+
+.sidebar-search-input {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.8rem;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.sidebar-search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.sidebar-search-input:focus {
+    border-color: var(--accent);
+}
+
+.sidebar-repo-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-repo-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.85rem;
+    transition: background 0.15s;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+}
+
+.sidebar-repo-item:hover {
+    background: var(--bg-tertiary);
+}
+
+.sidebar-repo-item.active {
+    border-left-color: var(--accent);
+    background: var(--bg-tertiary);
+    color: var(--accent);
+}
+
+.sidebar-all-repos {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.sidebar-repo-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar-repo-private {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    margin-left: 0.35rem;
+    flex-shrink: 0;
+}
+
+/* Monitor toggle switch */
+.monitor-toggle {
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.monitor-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.monitor-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    transition: background 0.2s;
+}
+
+.monitor-toggle-slider::before {
+    content: "";
+    position: absolute;
+    height: 14px;
+    width: 14px;
+    left: 2px;
+    bottom: 2px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.monitor-toggle input:checked + .monitor-toggle-slider {
+    background: rgba(63, 185, 80, 0.3);
+    border-color: var(--success);
+}
+
+.monitor-toggle input:checked + .monitor-toggle-slider::before {
+    transform: translateX(16px);
+    background: var(--success);
+}
+
+.monitor-toggle input:disabled + .monitor-toggle-slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Sidebar placeholder */
+.sidebar-placeholder {
+    text-align: center;
+    padding: 1.5rem 1rem;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.sidebar-connect-btn {
+    display: inline-block;
+    margin-top: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.8rem;
+    transition: border-color 0.15s;
+}
+
+.sidebar-connect-btn:hover {
+    border-color: var(--accent);
+}
+
+.sidebar-loading {
+    text-align: center;
+    padding: 1.5rem 1rem;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+/* Settings page */
+.settings-section {
+    margin-bottom: 2rem;
+}
+
+.settings-section-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.75rem;
+}
+
+.settings-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.settings-row-info {
+    flex: 1;
+}
+
+.settings-row-label {
+    display: block;
+    font-weight: 500;
+    color: var(--text);
+    font-size: 0.9rem;
+}
+
+.settings-row-desc {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+}
+
+.settings-btn {
+    padding: 0.4rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+    color: var(--text);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    flex-shrink: 0;
+}
+
+.settings-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.settings-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.settings-btn-primary {
+    background: rgba(88, 166, 255, 0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.settings-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
 /* Connection indicator */
 .connection-status {
     position: fixed;
@@ -443,6 +737,24 @@
 }
 
 /* Responsive */
+@media (max-width: 900px) {
+    .dash-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .dash-sidebar {
+        position: static;
+        max-height: none;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.75rem;
+    }
+
+    .dash-main {
+        padding: 1rem 0;
+    }
+}
+
 @media (max-width: 640px) {
     .dash-stats {
         grid-template-columns: repeat(2, 1fr);

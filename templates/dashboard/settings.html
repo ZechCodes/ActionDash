@@ -1,0 +1,113 @@
+{% extends "dashboard/base_with_sidebar.html" %}
+
+{% block page_title %}Settings{% endblock %}
+
+{% block dashboard_content %}
+<nav class="dash-breadcrumb">
+    <a href="/">Dashboard</a> &rsaquo;
+    <span>Settings</span>
+</nav>
+
+<h2 class="dash-section-title">Settings</h2>
+
+<section class="settings-section">
+    <h3 class="settings-section-title">Monitoring</h3>
+    <div class="settings-card">
+        <div class="settings-row">
+            <div class="settings-row-info">
+                <span class="settings-row-label">Monitor All Repos</span>
+                <span class="settings-row-desc">Create webhooks for all your GitHub repos at once</span>
+            </div>
+            <button class="settings-btn settings-btn-primary" id="monitor-all-btn"
+                {% if not has_github %}disabled title="Connect GitHub first"{% endif %}>
+                Monitor All
+            </button>
+        </div>
+        <div id="monitor-all-progress" class="settings-progress" style="display: none;">
+            <span class="spinner"></span>
+            <span id="monitor-all-status">Setting up webhooks...</span>
+        </div>
+    </div>
+</section>
+
+<section class="settings-section">
+    <h3 class="settings-section-title">Auto-Monitor</h3>
+    <div class="settings-card">
+        <div class="settings-row">
+            <div class="settings-row-info">
+                <span class="settings-row-label">Auto-monitor new repos</span>
+                <span class="settings-row-desc">Automatically create webhooks when new repos are added. Requires GitHub App integration (coming soon).</span>
+            </div>
+            <label class="monitor-toggle">
+                <input type="checkbox" disabled
+                    {% if settings and settings.auto_monitor_new_repos %}checked{% endif %}>
+                <span class="monitor-toggle-slider"></span>
+            </label>
+        </div>
+    </div>
+</section>
+
+{% if user %}
+<section class="settings-section">
+    <h3 class="settings-section-title">Account</h3>
+    <div class="settings-card">
+        <div class="settings-row">
+            <div class="settings-row-info">
+                <span class="settings-row-label">{{ user.display_name or user.email or 'User' }}</span>
+                <span class="settings-row-desc">
+                    {% if has_github %}
+                    Connected via GitHub
+                    {% else %}
+                    No GitHub account connected
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function() {
+    const btn = document.getElementById('monitor-all-btn');
+    const progress = document.getElementById('monitor-all-progress');
+    const status = document.getElementById('monitor-all-status');
+
+    if (!btn) return;
+
+    btn.addEventListener('click', async function() {
+        if (!confirm('This will create webhooks on all your GitHub repos. Continue?')) return;
+
+        btn.disabled = true;
+        progress.style.display = 'flex';
+        status.textContent = 'Setting up webhooks...';
+
+        try {
+            const resp = await fetch('/api/repos/monitor-all', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const data = await resp.json();
+
+            if (data.ok) {
+                status.textContent = `Done! Enabled: ${data.enabled}, Skipped: ${data.skipped}, Failed: ${data.failed}`;
+                // Refresh sidebar repo list
+                if (window.ActionDash && window.ActionDash.loadRepos) {
+                    window.ActionDash.loadRepos();
+                }
+            } else {
+                status.textContent = 'Error: ' + (data.error || 'Unknown error');
+            }
+        } catch (err) {
+            status.textContent = 'Network error';
+        }
+
+        setTimeout(() => { btn.disabled = false; }, 3000);
+    });
+})();
+</script>
+{% endblock %}

@@ -19,7 +19,7 @@ from skrift.db.models.page_revision import PageRevision  # noqa: F401
 from skrift.db.models.role import Role, RolePermission  # noqa: F401
 from skrift.db.models.oauth_account import OAuthAccount  # noqa: F401
 from skrift.db.models.setting import Setting  # noqa: F401
-from actiondash.models import WorkflowRun, WorkflowJob  # noqa: F401
+from actiondash.models import WorkflowRun, WorkflowJob, MonitoredRepo, UserSettings  # noqa: F401
 
 
 async def init_db() -> None:

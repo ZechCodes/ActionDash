@@ -1,19 +1,8 @@
-{% extends "base.html" %}
+{% extends "dashboard/base_with_sidebar.html" %}
 
-{% block title %}Dashboard - {{ site_name() }}{% endblock %}
+{% block page_title %}{% if current_repo %}{{ current_repo }}{% else %}Dashboard{% endif %}{% endblock %}
 
-{% block head %}
-<link rel="stylesheet" href="{{ static_url('css/dashboard.css') }}">
-{% endblock %}
-
-{% block masthead %}
-<header class="sk-masthead">
-    <h1><a href="/" style="color: inherit; text-decoration: none;">{{ site_name() }}</a></h1>
-    <p class="sk-tagline">GitHub Actions Dashboard</p>
-</header>
-{% endblock %}
-
-{% block content %}
+{% block dashboard_content %}
 <section class="dash-stats" id="stats-bar">
     <div class="stat-card stat-active">
         <span class="stat-value" id="stat-active">{{ stats.active_count }}</span>
@@ -54,14 +43,10 @@
         {% endfor %}
         {% if not recent_runs %}
         <div class="empty-state">
-            <p>No workflow runs yet.</p>
+            <p>No workflow runs yet{% if current_repo %} for {{ current_repo }}{% endif %}.</p>
             <p class="empty-hint">Configure a GitHub webhook pointing to <code>/webhooks/github</code> with <strong>workflow_run</strong> and <strong>workflow_job</strong> events.</p>
         </div>
         {% endif %}
     </div>
 </section>
-{% endblock %}
-
-{% block scripts %}
-<script src="{{ static_url('js/dashboard.js') }}"></script>
 {% endblock %}

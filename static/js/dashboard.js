@@ -11,6 +11,9 @@
     const RECONNECT_DELAY = 3000;
     let eventSource = null;
 
+    // Current repo filter from URL
+    const currentRepo = new URLSearchParams(window.location.search).get("repo");
+
     // --- Connection status indicator ---
 
     function createConnectionIndicator() {
@@ -69,8 +72,11 @@
 
     function handleNotification(data) {
         if (data.type === "workflow_run" && data.run) {
+            // When filtering by repo, only show updates for that repo
+            if (currentRepo && data.run.repo_full_name !== currentRepo) return;
             updateWorkflowRun(data.run, data.action);
         } else if (data.type === "workflow_job" && data.job) {
+            if (currentRepo && data.job.repo_full_name !== currentRepo) return;
             updateWorkflowJob(data.job, data.action);
         }
     }
@@ -281,7 +287,7 @@
         runList.appendChild(firstCard);
 
         // Insert before the recent runs section
-        const content = document.querySelector(".sk-content");
+        const content = document.querySelector(".dash-main") || document.querySelector(".sk-content");
         const statsBar = document.getElementById("stats-bar");
         if (statsBar && statsBar.nextElementSibling) {
             content.insertBefore(section, statsBar.nextElementSibling);
@@ -291,7 +297,9 @@
     }
 
     function refreshStats() {
-        fetch("/api/stats", { credentials: "same-origin" })
+        var url = "/api/stats";
+        if (currentRepo) url += "?repo=" + encodeURIComponent(currentRepo);
+        fetch(url, { credentials: "same-origin" })
             .then((r) => r.json())
             .then((stats) => {
                 setTextIfExists("stat-active", stats.active_count);

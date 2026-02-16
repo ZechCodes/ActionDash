@@ -19,4 +19,6 @@ rate_limit:
 
 controllers:
   - actiondash.controllers:DashboardController
+  - actiondash.controllers:RepoController
+  - actiondash.controllers:SettingsController
   - actiondash.controllers:WebhookController

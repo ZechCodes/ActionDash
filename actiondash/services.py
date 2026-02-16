@@ -87,24 +87,33 @@ async def upsert_workflow_job(session: AsyncSession, payload: dict) -> WorkflowJ
 
 
 async def get_recent_runs(
-    session: AsyncSession, *, limit: int = 50
+    session: AsyncSession,
+    *,
+    limit: int = 50,
+    repo_full_name: str | None = None,
 ) -> list[WorkflowRun]:
-    """Get the most recent workflow runs."""
-    result = await session.execute(
-        select(WorkflowRun)
-        .order_by(desc(WorkflowRun.updated_at))
-        .limit(limit)
-    )
+    """Get the most recent workflow runs, optionally filtered by repo."""
+    query = select(WorkflowRun).order_by(desc(WorkflowRun.updated_at)).limit(limit)
+    if repo_full_name:
+        query = query.where(WorkflowRun.repo_full_name == repo_full_name)
+    result = await session.execute(query)
     return list(result.scalars().all())
 
 
-async def get_active_runs(session: AsyncSession) -> list[WorkflowRun]:
-    """Get currently active (non-completed) workflow runs."""
-    result = await session.execute(
+async def get_active_runs(
+    session: AsyncSession,
+    *,
+    repo_full_name: str | None = None,
+) -> list[WorkflowRun]:
+    """Get currently active (non-completed) workflow runs, optionally filtered by repo."""
+    query = (
         select(WorkflowRun)
         .where(WorkflowRun.status.in_(["requested", "in_progress", "queued"]))
         .order_by(desc(WorkflowRun.updated_at))
     )
+    if repo_full_name:
+        query = query.where(WorkflowRun.repo_full_name == repo_full_name)
+    result = await session.execute(query)
     return list(result.scalars().all())
 
 
@@ -120,10 +129,14 @@ async def get_jobs_for_run(
     return list(result.scalars().all())
 
 
-async def get_run_stats(session: AsyncSession) -> dict:
-    """Get summary statistics for the dashboard."""
-    active = await get_active_runs(session)
-    recent = await get_recent_runs(session, limit=100)
+async def get_run_stats(
+    session: AsyncSession,
+    *,
+    repo_full_name: str | None = None,
+) -> dict:
+    """Get summary statistics for the dashboard, optionally filtered by repo."""
+    active = await get_active_runs(session, repo_full_name=repo_full_name)
+    recent = await get_recent_runs(session, limit=100, repo_full_name=repo_full_name)
 
     completed = [r for r in recent if r.status == "completed"]
     succeeded = [r for r in completed if r.conclusion == "success"]

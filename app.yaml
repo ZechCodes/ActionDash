@@ -10,7 +10,7 @@ auth:
     github:
       client_id: "$GITHUB_OAUTH_CLIENT_ID"
       client_secret: "$GITHUB_OAUTH_CLIENT_SECRET"
-      scopes: ["read:user", "user:email"]
+      scopes: ["read:user", "user:email", "repo", "admin:repo_hook"]
 
 session:
   max_age: 604800
@@ -19,7 +19,7 @@ session:
 security_headers:
   enabled: true
   csp_nonce: true
-  content_security_policy: "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; script-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'self'"
+  content_security_policy: "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; script-src 'self'; connect-src 'self' https://api.github.com; form-action 'self'; base-uri 'self'"
 
 rate_limit:
   enabled: true
@@ -32,4 +32,6 @@ controllers:
   - skrift.controllers.auth:AuthController
   - skrift.admin.controller:AdminController
   - actiondash.controllers:DashboardController
+  - actiondash.controllers:RepoController
+  - actiondash.controllers:SettingsController
   - actiondash.controllers:WebhookController
