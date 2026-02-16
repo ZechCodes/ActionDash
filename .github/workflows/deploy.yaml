@@ -56,13 +56,21 @@ jobs:
           cat k8s/init-db-job.yaml | sed "s|image: zzmmrmn/actiondash:latest|image: ${{ env.IMAGE }}:${{ steps.version.outputs.TAG }}|" | kubectl apply -f -
           kubectl wait --for=condition=complete job/actiondash-init-db --timeout=120s
 
-      - name: Apply deployment manifest
-        run: kubectl apply -f k8s/deploy-actiondash.yaml
-
-      - name: Update deployment image
+      - name: Clean up stuck rollout
         run: |
-          kubectl set image deployment/actiondash \
-            actiondash=${{ env.IMAGE }}:${{ steps.version.outputs.TAG }}
+          # If a previous rollout is stuck, scale to 0 to clear it
+          STATUS=$(kubectl rollout status deployment/actiondash --timeout=5s 2>&1 || true)
+          if echo "$STATUS" | grep -q "pending\|waiting\|timed out"; then
+            echo "Stuck rollout detected, scaling to 0 to reset..."
+            kubectl scale deployment/actiondash --replicas=0
+            kubectl rollout status deployment/actiondash --timeout=60s || true
+          fi
+
+      - name: Deploy with updated manifest
+        run: |
+          # Apply manifest (updates probes, resource limits, etc.) and set image in one shot
+          sed "s|image: zzmmrmn/actiondash:latest|image: ${{ env.IMAGE }}:${{ steps.version.outputs.TAG }}|" \
+            k8s/deploy-actiondash.yaml | kubectl apply -f -
 
       - name: Wait for rollout
         run: kubectl rollout status deployment/actiondash --timeout=300s
