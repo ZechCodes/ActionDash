@@ -17,7 +17,18 @@ spec:
       containers:
         - name: init-db
           image: zzmmrmn/actiondash:latest
-          command: ["uv", "run", "python", "-m", "actiondash.initdb"]
+          command:
+            - sh
+            - -c
+            - |
+              # If no migrations have been applied yet, stamp all current
+              # heads as applied (tables were created before migrations were adopted)
+              CURRENT=$(uv run skrift db current 2>/dev/null)
+              if [ -z "$CURRENT" ]; then
+                echo "No migration history found, stamping current state..."
+                uv run skrift db stamp heads
+              fi
+              uv run skrift db upgrade heads
           envFrom:
             - configMapRef:
                 name: actiondash-config

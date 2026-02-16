@@ -53,7 +53,7 @@ jobs:
       - name: Run database migrations
         run: |
           kubectl delete job actiondash-init-db --ignore-not-found
-          cat k8s/init-db-job.yaml | sed "s|image: zzmmrmn/actiondash:latest|image: ${{ env.IMAGE }}:${{ steps.version.outputs.TAG }}|" | kubectl apply -f -
+          sed "s|image: zzmmrmn/actiondash:latest|image: ${{ env.IMAGE }}:${{ steps.version.outputs.TAG }}|" k8s/init-db-job.yaml | kubectl apply -f -
           kubectl wait --for=condition=complete job/actiondash-init-db --timeout=120s
 
       - name: Clean up stuck rollout

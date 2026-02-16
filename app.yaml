@@ -1,6 +1,9 @@
 db:
   url: "$DATABASE_URL"
 
+models:
+  - actiondash.models
+
 auth:
   redirect_base_url: "$AUTH_REDIRECT_BASE_URL"
   allowed_redirect_domains:
