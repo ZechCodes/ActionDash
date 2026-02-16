@@ -288,17 +288,11 @@ body::before {
     font-family: var(--font-mono);
 }
 
-.sidebar-repo-private {
+.sidebar-repo-lock {
     font-size: 0.6rem;
-    color: var(--text-dim);
-    background: rgba(0, 240, 255, 0.05);
-    padding: 1px 5px;
-    border-radius: 3px;
-    margin-left: 4px;
+    margin-right: 4px;
+    opacity: 0.5;
     flex-shrink: 0;
-    font-family: var(--font-mono);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
 }
 
 /* Monitor toggle switch */
