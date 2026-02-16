@@ -8,6 +8,7 @@ Run with:
 
 import asyncio
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from skrift.db.base import Base
@@ -30,6 +31,20 @@ async def init_db() -> None:
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Add columns that create_all won't add to existing tables
+    async with engine.begin() as conn:
+        for column, col_type in [
+            ("access_token", "VARCHAR(2048)"),
+            ("refresh_token", "VARCHAR(2048)"),
+        ]:
+            try:
+                await conn.execute(text(
+                    f"ALTER TABLE oauth_accounts ADD COLUMN {column} {col_type}"
+                ))
+                print(f"Added column oauth_accounts.{column}")
+            except Exception:
+                pass  # Column already exists
 
     await engine.dispose()
     print(f"Database initialized at: {settings.db.url}")

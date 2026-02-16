@@ -50,6 +50,12 @@ jobs:
           doctl kubernetes cluster kubeconfig save production-hosting
           kubectl config set-context --current --namespace=zechcodes
 
+      - name: Run database migrations
+        run: |
+          kubectl delete job actiondash-init-db --ignore-not-found
+          cat k8s/init-db-job.yaml | sed "s|image: zzmmrmn/actiondash:latest|image: ${{ env.IMAGE }}:${{ steps.version.outputs.TAG }}|" | kubectl apply -f -
+          kubectl wait --for=condition=complete job/actiondash-init-db --timeout=120s
+
       - name: Apply deployment manifest
         run: kubectl apply -f k8s/deploy-actiondash.yaml
 

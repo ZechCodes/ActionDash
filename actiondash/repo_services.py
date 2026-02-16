@@ -28,8 +28,7 @@ async def get_user_github_token(session: AsyncSession, user_id: UUID) -> str | N
     account = result.scalar_one_or_none()
     if not account:
         return None
-    # access_token will be available once Skrift persists it (issue #33)
-    return getattr(account, "access_token", None)
+    return account.access_token
 
 
 async def get_user_repos(
