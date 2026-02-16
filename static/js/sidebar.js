@@ -153,7 +153,7 @@
     async function toggleMonitoring(repoFullName, enable) {
         var method = enable ? "POST" : "DELETE";
         try {
-            var resp = await fetch("/api/repos/" + encodeURIComponent(repoFullName) + "/monitor", {
+            var resp = await fetch("/api/repos/" + repoFullName + "/monitor", {
                 method: method,
                 credentials: "same-origin",
                 headers: { "Content-Type": "application/json" },

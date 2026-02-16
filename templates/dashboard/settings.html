@@ -70,44 +70,5 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
-(function() {
-    const btn = document.getElementById('monitor-all-btn');
-    const progress = document.getElementById('monitor-all-progress');
-    const status = document.getElementById('monitor-all-status');
-
-    if (!btn) return;
-
-    btn.addEventListener('click', async function() {
-        if (!confirm('This will create webhooks on all your GitHub repos. Continue?')) return;
-
-        btn.disabled = true;
-        progress.style.display = 'flex';
-        status.textContent = 'Setting up webhooks...';
-
-        try {
-            const resp = await fetch('/api/repos/monitor-all', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/json' },
-            });
-            const data = await resp.json();
-
-            if (data.ok) {
-                status.textContent = `Done! Enabled: ${data.enabled}, Skipped: ${data.skipped}, Failed: ${data.failed}`;
-                // Refresh sidebar repo list
-                if (window.ActionDash && window.ActionDash.loadRepos) {
-                    window.ActionDash.loadRepos();
-                }
-            } else {
-                status.textContent = 'Error: ' + (data.error || 'Unknown error');
-            }
-        } catch (err) {
-            status.textContent = 'Network error';
-        }
-
-        setTimeout(() => { btn.disabled = false; }, 3000);
-    });
-})();
-</script>
+<script src="{{ static_url('js/settings.js') }}"></script>
 {% endblock %}
