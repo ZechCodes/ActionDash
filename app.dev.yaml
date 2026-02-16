@@ -18,5 +18,6 @@ rate_limit:
   enabled: false
 
 controllers:
+  - skrift.controllers.auth:AuthController
   - actiondash.controllers:DashboardController
   - actiondash.controllers:WebhookController
