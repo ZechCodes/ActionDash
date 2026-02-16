@@ -489,7 +489,7 @@ class WebhookController(Controller):
             await db_session.commit()
 
             # Broadcast realtime update to all connected dashboard clients
-            notify_broadcast(
+            await notify_broadcast(
                 "workflow_run",
                 group=f"run-{run.run_id}",
                 action=action,
@@ -504,7 +504,7 @@ class WebhookController(Controller):
             job = await upsert_workflow_job(db_session, payload)
             await db_session.commit()
 
-            notify_broadcast(
+            await notify_broadcast(
                 "workflow_job",
                 group=f"job-{job.job_id}",
                 action=action,
