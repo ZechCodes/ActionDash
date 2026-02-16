@@ -261,7 +261,7 @@ class RepoController(Controller):
             content={"ok": True, "repo": monitored.to_dict()}, status_code=200
         )
 
-    @delete("/{repo_full_name:path}/monitor")
+    @delete("/{repo_full_name:path}/monitor", status_code=200)
     async def disable_monitoring(
         self, request: Request, db_session: AsyncSession, repo_full_name: str
     ) -> Response:
