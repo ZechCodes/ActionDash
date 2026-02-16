@@ -289,10 +289,16 @@ body::before {
 }
 
 .sidebar-repo-lock {
-    font-size: 0.6rem;
-    margin-right: 4px;
-    opacity: 0.5;
+    margin-right: 5px;
+    opacity: 0.4;
     flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+}
+
+.sidebar-repo-lock svg {
+    width: 10px;
+    height: 10px;
 }
 
 /* Monitor toggle switch */
