@@ -1,4 +1,5 @@
 <article class="run-card run-{{ run.conclusion or run.status }}" data-run-id="{{ run.run_id }}" id="run-{{ run.run_id }}">
+    <!-- Col 1: Status icon -->
     <div class="run-status-indicator">
         {% if run.status == 'completed' %}
             {% if run.conclusion == 'success' %}
@@ -11,38 +12,41 @@
                 <span class="status-icon neutral" title="{{ run.conclusion }}">&#8226;</span>
             {% endif %}
         {% elif run.status == 'in_progress' %}
-            <span class="status-icon in-progress" title="In Progress">
-                <span class="spinner"></span>
-            </span>
+            <span class="status-icon in-progress" title="In Progress">&#9654;</span>
         {% else %}
             <span class="status-icon queued" title="{{ run.status }}">&#9679;</span>
         {% endif %}
     </div>
+
+    <!-- Col 2: Info -->
     <div class="run-info">
-        <div class="run-header">
+        <div class="run-workflow">
             <a href="/runs/{{ run.run_id }}" class="run-workflow-name">{{ run.workflow_name }}</a>
-            <span class="run-repo">{{ run.repo_full_name }}</span>
+            {% if run.status != 'completed' %}
+            <span class="active-badge">{{ run.status | replace('_', ' ') }}</span>
+            {% endif %}
         </div>
         <div class="run-meta">
-            <span class="run-branch" title="Branch">{{ run.head_branch or 'unknown' }}</span>
+            <span><span class="meta-icon">&#9783;</span> {{ run.repo_full_name }}</span>
+            <span><span class="meta-icon">&#9095;</span> {{ run.head_branch or 'unknown' }}</span>
             {% if run.head_sha %}
-            <span class="run-sha" title="Commit">{{ run.head_sha[:7] }}</span>
+            <span>{{ run.head_sha[:7] }}</span>
             {% endif %}
-            <span class="run-event">{{ run.event }}</span>
-            <span class="run-number">#{{ run.run_number }}</span>
+            <span>{{ run.event }} &middot; #{{ run.run_number }}</span>
         </div>
     </div>
+
+    <!-- Col 3: Actor + link -->
     <div class="run-actor">
         {% if run.actor_avatar_url %}
         <img src="{{ run.actor_avatar_url }}" alt="{{ run.actor_login }}" class="actor-avatar" width="24" height="24">
         {% endif %}
-        {% if run.actor_login %}
-        <span class="actor-name">{{ run.actor_login }}</span>
-        {% endif %}
-    </div>
-    <div class="run-actions">
-        <a href="{{ run.html_url }}" target="_blank" rel="noopener" class="run-link" title="View on GitHub">
-            &#x2197;
-        </a>
+        <div>
+            {% if run.actor_login %}
+            <div class="actor-name">{{ run.actor_login }}</div>
+            {% endif %}
+            <div class="actor-time" data-started="{{ run.run_started_at or '' }}"></div>
+        </div>
+        <a href="{{ run.html_url }}" target="_blank" rel="noopener" class="run-link" title="View on GitHub">&#x2197;</a>
     </div>
 </article>

@@ -26,6 +26,7 @@
 <section class="dash-section">
     <h2 class="dash-section-title">
         <span class="pulse-dot"></span> Active Runs
+        <span class="section-count">{{ active_runs|length }}</span>
     </h2>
     <div class="run-list" id="active-runs">
         {% for run in active_runs %}
@@ -36,7 +37,9 @@
 {% endif %}
 
 <section class="dash-section">
-    <h2 class="dash-section-title">Recent Runs</h2>
+    <h2 class="dash-section-title">
+        Recent Runs <span class="section-count">{{ recent_runs|length }}</span>
+    </h2>
     <div class="run-list" id="recent-runs">
         {% for run in recent_runs %}
         {% include "dashboard/_run_card.html" %}

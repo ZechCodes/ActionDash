@@ -534,6 +534,16 @@ body::before {
     background: linear-gradient(90deg, rgba(0, 240, 255, 0.15) 0%, transparent 100%);
 }
 
+.section-count {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    background: rgba(0, 240, 255, 0.08);
+    color: var(--cyan);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 400;
+}
+
 .pulse-dot {
     display: inline-block;
     width: 7px;
@@ -558,7 +568,7 @@ body::before {
     border-radius: 10px;
     padding: 16px 20px;
     display: grid;
-    grid-template-columns: 36px 1fr auto auto;
+    grid-template-columns: 36px 1fr auto;
     gap: 16px;
     align-items: center;
     transition: all 0.3s;
@@ -640,11 +650,10 @@ body::before {
     min-width: 0;
 }
 
-.run-header {
+.run-workflow {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
     margin-bottom: 5px;
 }
 
@@ -661,10 +670,27 @@ body::before {
     text-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
 }
 
-.run-repo {
-    font-size: 0.72rem;
-    color: var(--text-dim);
+.active-badge {
     font-family: var(--font-mono);
+    font-size: 0.58rem;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--cyan);
+    background: rgba(0, 240, 255, 0.08);
+    padding: 2px 7px;
+    border-radius: 3px;
+    animation: badge-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.meta-icon {
+    font-size: 0.72rem;
+    opacity: 0.6;
 }
 
 .run-meta {
@@ -701,7 +727,7 @@ body::before {
 .run-actor {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     flex-shrink: 0;
 }
 
@@ -715,9 +741,10 @@ body::before {
     color: var(--text);
 }
 
-/* Actions */
-.run-actions {
-    flex-shrink: 0;
+.actor-time {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--text-dim);
 }
 
 .run-link {
@@ -789,10 +816,7 @@ body::before {
     animation: spin 1s linear infinite;
 }
 
-/* Hide the inner .spinner when the ::after ring is used */
-.status-icon.in-progress .spinner {
-    display: none;
-}
+/* In-progress icon shows ▶ with spinning ring via ::after */
 
 .status-icon.queued {
     background: rgba(102, 119, 136, 0.08);
@@ -1365,7 +1389,9 @@ body::before {
         grid-template-columns: 30px 1fr auto;
     }
 
-    .run-actor {
+    .run-actor .actor-name,
+    .run-actor .actor-time,
+    .run-actor .actor-avatar {
         display: none;
     }
 

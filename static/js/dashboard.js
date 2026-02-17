@@ -143,11 +143,25 @@
                 }
             } else if (run.status === "in_progress") {
                 iconEl.classList.add("in-progress");
-                iconEl.innerHTML = '<span class="spinner"></span>';
+                iconEl.innerHTML = "&#9654;";
             } else {
                 iconEl.classList.add("queued");
                 iconEl.innerHTML = "&#9679;";
             }
+        }
+
+        // Update active badge
+        var badgeEl = card.querySelector(".active-badge");
+        if (run.status !== "completed") {
+            if (!badgeEl) {
+                badgeEl = document.createElement("span");
+                badgeEl.className = "active-badge";
+                var workflow = card.querySelector(".run-workflow");
+                if (workflow) workflow.appendChild(badgeEl);
+            }
+            badgeEl.textContent = run.status.replace("_", " ");
+        } else if (badgeEl) {
+            badgeEl.remove();
         }
     }
 
@@ -174,7 +188,7 @@
                 }
             } else if (job.status === "in_progress") {
                 iconEl.classList.add("in-progress");
-                iconEl.innerHTML = '<span class="spinner"></span>';
+                iconEl.innerHTML = "&#9654;";
             } else {
                 iconEl.classList.add("queued");
                 iconEl.innerHTML = "&#9679;";
@@ -219,33 +233,41 @@
                 statusIcon = '<span class="status-icon neutral">&#8226;</span>';
             }
         } else if (run.status === "in_progress") {
-            statusIcon = '<span class="status-icon in-progress"><span class="spinner"></span></span>';
+            statusIcon = '<span class="status-icon in-progress">&#9654;</span>';
         } else {
             statusIcon = '<span class="status-icon queued">&#9679;</span>';
         }
 
-        const sha = run.head_sha ? `<span class="run-sha">${run.head_sha}</span>` : "";
-        const avatar = run.actor_avatar_url
-            ? `<img src="${run.actor_avatar_url}" alt="${run.actor_login || ""}" class="actor-avatar" width="24" height="24">`
+        const badge = run.status !== "completed"
+            ? `<span class="active-badge">${escapeHtml(run.status.replace("_", " "))}</span>`
             : "";
-        const actorName = run.actor_login ? `<span class="actor-name">${run.actor_login}</span>` : "";
+        const sha = run.head_sha ? `<span>${escapeHtml(run.head_sha)}</span>` : "";
+        const avatar = run.actor_avatar_url
+            ? `<img src="${escapeHtml(run.actor_avatar_url)}" alt="${escapeHtml(run.actor_login || "")}" class="actor-avatar" width="24" height="24">`
+            : "";
+        const actorName = run.actor_login ? `<div class="actor-name">${escapeHtml(run.actor_login)}</div>` : "";
+        const startedAt = run.run_started_at || "";
 
         card.innerHTML = `
             <div class="run-status-indicator">${statusIcon}</div>
             <div class="run-info">
-                <div class="run-header">
+                <div class="run-workflow">
                     <a href="/runs/${run.run_id}" class="run-workflow-name">${escapeHtml(run.workflow_name)}</a>
-                    <span class="run-repo">${escapeHtml(run.repo_full_name)}</span>
+                    ${badge}
                 </div>
                 <div class="run-meta">
-                    <span class="run-branch">${escapeHtml(run.head_branch || "unknown")}</span>
+                    <span><span class="meta-icon">&#9783;</span> ${escapeHtml(run.repo_full_name)}</span>
+                    <span><span class="meta-icon">&#9095;</span> ${escapeHtml(run.head_branch || "unknown")}</span>
                     ${sha}
-                    <span class="run-event">${escapeHtml(run.event)}</span>
-                    <span class="run-number">#${run.run_number}</span>
+                    <span>${escapeHtml(run.event)} &middot; #${run.run_number}</span>
                 </div>
             </div>
-            <div class="run-actor">${avatar}${actorName}</div>
-            <div class="run-actions">
+            <div class="run-actor">
+                ${avatar}
+                <div>
+                    ${actorName}
+                    <div class="actor-time" data-started="${escapeHtml(startedAt)}"></div>
+                </div>
                 <a href="${escapeHtml(run.html_url)}" target="_blank" rel="noopener" class="run-link" title="View on GitHub">&#x2197;</a>
             </div>
         `;
@@ -257,7 +279,7 @@
         const section = document.createElement("section");
         section.className = "dash-section";
         section.innerHTML = `
-            <h2 class="dash-section-title"><span class="pulse-dot"></span> Active Runs</h2>
+            <h2 class="dash-section-title"><span class="pulse-dot"></span> Active Runs <span class="section-count">1</span></h2>
             <div class="run-list" id="active-runs"></div>
         `;
         const runList = section.querySelector(".run-list");
@@ -298,6 +320,35 @@
         div.textContent = str;
         return div.innerHTML;
     }
+
+    // --- Relative time display for actor-time elements ---
+
+    function formatTimeAgo(dateStr) {
+        if (!dateStr) return "";
+        var then = new Date(dateStr);
+        if (isNaN(then.getTime())) return "";
+        var seconds = Math.floor((Date.now() - then.getTime()) / 1000);
+        if (seconds < 0) return "just now";
+        if (seconds < 60) return seconds + "s ago";
+        var minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return minutes + "m ago";
+        var hours = Math.floor(minutes / 60);
+        if (hours < 24) return hours + "h ago";
+        var days = Math.floor(hours / 24);
+        return days + "d ago";
+    }
+
+    function updateActorTimes() {
+        var els = document.querySelectorAll(".actor-time[data-started]");
+        for (var i = 0; i < els.length; i++) {
+            var started = els[i].getAttribute("data-started");
+            els[i].textContent = formatTimeAgo(started);
+        }
+    }
+
+    // Run immediately and then every 30s
+    updateActorTimes();
+    setInterval(updateActorTimes, 30000);
 
     // --- Init (no-op: Skrift's notifications.js owns the SSE connection) ---
 })();
