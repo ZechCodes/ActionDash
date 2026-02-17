@@ -14,6 +14,7 @@
 
 {% block content %}
 <div class="dash-layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
     <aside class="dash-sidebar" id="sidebar">
         <div class="sidebar-header">
             <h3 class="sidebar-title">Repositories</h3>
@@ -46,6 +47,11 @@
 
     <div class="dash-main">
         <header class="dash-masthead">
+            <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle repositories menu">
+                <span class="sidebar-toggle-bar"></span>
+                <span class="sidebar-toggle-bar"></span>
+                <span class="sidebar-toggle-bar"></span>
+            </button>
             <h1 class="dash-masthead-title"><a href="/" class="masthead-link">{{ site_name() }}</a></h1>
         </header>
         {% block dashboard_content %}{% endblock %}

@@ -13,6 +13,36 @@
 
     const repoItemsEl = document.getElementById("repo-items");
     const searchInput = document.getElementById("repo-search");
+    const sidebarToggle = document.getElementById("sidebar-toggle");
+    const sidebar = document.getElementById("sidebar");
+    const sidebarBackdrop = document.getElementById("sidebar-backdrop");
+
+    // --- Mobile sidebar toggle ---
+    function openSidebar() {
+        sidebar.classList.add("open");
+        sidebarBackdrop.classList.add("open");
+        sidebarToggle.classList.add("open");
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove("open");
+        sidebarBackdrop.classList.remove("open");
+        sidebarToggle.classList.remove("open");
+    }
+
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener("click", function () {
+            if (sidebar.classList.contains("open")) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
+        });
+    }
+
+    if (sidebarBackdrop) {
+        sidebarBackdrop.addEventListener("click", closeSidebar);
+    }
 
     // If no repo items container, we're not on a page with a sidebar
     if (!repoItemsEl) return;
