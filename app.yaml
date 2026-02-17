@@ -38,6 +38,12 @@ rate_limit:
   paths:
     "/webhooks": 300
 
+on_startup:
+  - actiondash.step_poller:start_step_poller
+
+on_shutdown:
+  - actiondash.step_poller:stop_step_poller
+
 controllers:
   - skrift.controllers.auth:AuthController
   - skrift.admin.controller:AdminController

@@ -55,6 +55,9 @@
         } else if (data.type === "workflow_job" && data.job) {
             if (currentRepo && data.job.repo_full_name !== currentRepo) return;
             updateWorkflowJob(data.job, data.action);
+        } else if (data.type === "step_progress" && data.jobs) {
+            if (currentRepo && data.repo_full_name !== currentRepo) return;
+            updateStepProgress(data.run_id, data.jobs);
         }
     }
 
@@ -163,6 +166,12 @@
         } else if (badgeEl) {
             badgeEl.remove();
         }
+
+        // Remove step progress when run completes
+        if (run.status === "completed") {
+            var stepEl = card.querySelector(".run-step-progress");
+            if (stepEl) stepEl.remove();
+        }
     }
 
     function updateJobCard(card, job) {
@@ -194,6 +203,42 @@
                 iconEl.innerHTML = "&#9679;";
             }
         }
+    }
+
+    function updateStepProgress(runId, jobs) {
+        var card = document.querySelector('[data-run-id="' + runId + '"]');
+        if (!card) return;
+
+        // Find first in-progress job with a current step
+        var activeJob = null;
+        var jobIds = Object.keys(jobs);
+        for (var i = 0; i < jobIds.length; i++) {
+            var job = jobs[jobIds[i]];
+            if (job.status === "in_progress" && job.current_step) {
+                activeJob = job;
+                break;
+            }
+        }
+
+        var el = card.querySelector(".run-step-progress");
+
+        if (!activeJob) {
+            // No active step — remove element if present
+            if (el) el.remove();
+            return;
+        }
+
+        if (!el) {
+            el = document.createElement("div");
+            el.className = "run-step-progress";
+            var runInfo = card.querySelector(".run-info");
+            if (runInfo) runInfo.appendChild(el);
+        }
+
+        el.innerHTML =
+            '<span class="step-indicator"></span>' +
+            '<span class="step-name">' + escapeHtml(activeJob.current_step) + '</span>' +
+            '<span class="step-count">' + activeJob.completed_steps + '/' + activeJob.total_steps + '</span>';
     }
 
     function reclassifyRun(card, run) {

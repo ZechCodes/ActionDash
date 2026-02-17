@@ -699,6 +699,39 @@ body::before {
     50% { opacity: 0.5; }
 }
 
+.run-step-progress {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--cyan);
+    opacity: 0.85;
+}
+
+.step-indicator {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 6px var(--cyan);
+    animation: badge-pulse 2.5s ease-in-out infinite;
+    flex-shrink: 0;
+}
+
+.step-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+}
+
+.step-count {
+    color: var(--text-dim);
+    flex-shrink: 0;
+}
+
 .meta-icon {
     font-size: 0.72rem;
     opacity: 0.6;
