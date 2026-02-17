@@ -33,7 +33,7 @@
 
         <nav class="sidebar-repo-list" id="repo-list">
             {% if has_github %}
-            <div id="repo-items">
+            <div id="repo-items" data-user-id="{{ user.id }}">
                 <div class="sidebar-loading">Loading repos...</div>
             </div>
             {% else %}
