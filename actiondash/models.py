@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
-from sqlalchemy import Boolean, ForeignKey, Integer, Index, String, Text, DateTime, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, Index, String, Text, DateTime, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from skrift.db.base import Base
@@ -33,10 +33,10 @@ class WorkflowRun(Base):
 
     __tablename__ = "workflow_runs"
 
-    run_id: Mapped[int] = mapped_column(Integer, unique=True, index=True)
+    run_id: Mapped[int] = mapped_column(BigInteger, unique=True, index=True)
     repo_full_name: Mapped[str] = mapped_column(String(255), index=True)
     workflow_name: Mapped[str] = mapped_column(String(255))
-    workflow_id: Mapped[int] = mapped_column(Integer)
+    workflow_id: Mapped[int] = mapped_column(BigInteger)
     head_branch: Mapped[str | None] = mapped_column(String(255), nullable=True)
     head_sha: Mapped[str | None] = mapped_column(String(40), nullable=True)
     status: Mapped[str] = mapped_column(String(50), index=True)
@@ -81,8 +81,8 @@ class WorkflowJob(Base):
 
     __tablename__ = "workflow_jobs"
 
-    job_id: Mapped[int] = mapped_column(Integer, unique=True, index=True)
-    run_id: Mapped[int] = mapped_column(Integer, index=True)
+    job_id: Mapped[int] = mapped_column(BigInteger, unique=True, index=True)
+    run_id: Mapped[int] = mapped_column(BigInteger, index=True)
     repo_full_name: Mapped[str] = mapped_column(String(255), index=True)
     workflow_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     name: Mapped[str] = mapped_column(String(255))
@@ -122,8 +122,8 @@ class MonitoredRepo(Base):
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     repo_full_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    repo_github_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    webhook_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    repo_github_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    webhook_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     is_private: Mapped[bool] = mapped_column(Boolean, default=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     default_branch: Mapped[str | None] = mapped_column(String(255), nullable=True)
