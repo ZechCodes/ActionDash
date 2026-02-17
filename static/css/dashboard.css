@@ -141,7 +141,7 @@ body::before {
     grid-row: 1 / -1;
     background: rgba(8, 8, 18, 0.95);
     border-right: 1px solid rgba(0, 240, 255, 0.06);
-    padding: 20px 16px;
+    padding: 28px 16px;
     display: flex;
     flex-direction: column;
     gap: 12px;

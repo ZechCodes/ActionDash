@@ -92,8 +92,13 @@ async def get_recent_runs(
     limit: int = 50,
     repo_full_name: str | None = None,
 ) -> list[WorkflowRun]:
-    """Get the most recent workflow runs, optionally filtered by repo."""
-    query = select(WorkflowRun).order_by(desc(WorkflowRun.updated_at)).limit(limit)
+    """Get the most recent completed workflow runs, optionally filtered by repo."""
+    query = (
+        select(WorkflowRun)
+        .where(WorkflowRun.status == "completed")
+        .order_by(desc(WorkflowRun.updated_at))
+        .limit(limit)
+    )
     if repo_full_name:
         query = query.where(WorkflowRun.repo_full_name == repo_full_name)
     result = await session.execute(query)
