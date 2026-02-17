@@ -84,9 +84,11 @@
             return (
                 '<div class="sidebar-repo-item' + (isActive ? ' active' : '') + '" data-repo="' + escapeAttr(repo.full_name) + '">' +
                     '<span class="sidebar-repo-name" title="' + escapeAttr(repo.full_name) + '">' +
-                        (repo.private ? '<span class="sidebar-repo-lock" title="Private"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2.5" y="7" width="11" height="8" rx="2.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke-linecap="round"/></svg></span>' : '') +
-                        '<span class="sidebar-repo-owner">' + escapeHtml(ownerName) + '/</span>' +
-                        escapeHtml(repoName) +
+                        '<span class="sidebar-repo-name-text">' +
+                            (repo.private ? '<span class="sidebar-repo-lock" title="Private"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2.5" y="7" width="11" height="8" rx="2.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke-linecap="round"/></svg></span>' : '') +
+                            escapeHtml(repoName) +
+                        '</span>' +
+                        '<span class="sidebar-repo-owner">' + escapeHtml(ownerName) + '</span>' +
                     '</span>' +
                     '<label class="monitor-toggle" title="' + (isMonitored ? 'Disable' : 'Enable') + ' monitoring">' +
                         '<input type="checkbox"' + (isMonitored ? ' checked' : '') + ' data-repo="' + escapeAttr(repo.full_name) + '">' +
