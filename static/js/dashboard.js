@@ -402,8 +402,8 @@
         }
     }
 
-    // Run immediately and then every 30s
+    // Run immediately and then every second
     updateActorTimes();
-    setInterval(updateActorTimes, 30000);
+    setInterval(updateActorTimes, 1000);
 
 })();
