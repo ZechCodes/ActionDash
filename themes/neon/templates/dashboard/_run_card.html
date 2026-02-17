@@ -38,9 +38,7 @@
 
     <!-- Col 3: Actor + link -->
     <div class="run-actor">
-        {% if run.actor_avatar_url %}
-        <img src="{{ run.actor_avatar_url }}" alt="{{ run.actor_login }}" class="actor-avatar" width="24" height="24">
-        {% endif %}
+        <img src="{{ run.actor_avatar_url or 'https://github.com/ghost.png?s=48' }}" alt="{{ run.actor_login }}" class="actor-avatar" width="24" height="24">
         <div>
             {% if run.actor_login %}
             <div class="actor-name">{{ run.actor_login }}</div>

@@ -298,9 +298,8 @@
             ? `<span class="active-badge">${escapeHtml(run.status.replace("_", " "))}</span>`
             : "";
         const sha = run.head_sha ? `<span>${escapeHtml(run.head_sha)}</span>` : "";
-        const avatar = run.actor_avatar_url
-            ? `<img src="${escapeHtml(run.actor_avatar_url)}" alt="${escapeHtml(run.actor_login || "")}" class="actor-avatar" width="24" height="24">`
-            : "";
+        const avatarUrl = run.actor_avatar_url || "https://github.com/ghost.png?s=48";
+        const avatar = `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(run.actor_login || "")}" class="actor-avatar" width="24" height="24">`;
         const actorName = run.actor_login ? `<div class="actor-name">${escapeHtml(run.actor_login)}</div>` : "";
         const startedAt = run.run_started_at || "";
 

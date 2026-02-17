@@ -6,7 +6,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Chakra+Petch:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ static_url('css/dashboard.css') }}">
+<link rel="stylesheet" href="{{ theme_url('css/dashboard.css') }}">
 {% block extra_head %}{% endblock %}
 {% endblock %}
 
@@ -60,7 +60,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ static_url('js/sidebar.js') }}"></script>
-<script src="{{ static_url('js/dashboard.js') }}"></script>
+<script src="{{ theme_url('js/sidebar.js') }}"></script>
+<script src="{{ theme_url('js/dashboard.js') }}"></script>
 {% block extra_scripts %}{% endblock %}
 {% endblock %}
