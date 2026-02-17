@@ -1,0 +1,167 @@
+/* ═══════════════════════════════════════════════════════════════
+   ActionDash — Neon Base Theme
+   Shared foundation styles for non-dashboard pages (login, errors).
+   ═══════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --cyan: #00f0ff;
+    --magenta: #ff00aa;
+    --purple: #8b5cf6;
+    --deep-bg: #06060e;
+    --card-bg: rgba(10, 10, 22, 0.85);
+    --card-border: rgba(0, 240, 255, 0.12);
+    --text: #c8d6e5;
+    --text-dim: #5a6a7a;
+    --glow-cyan: 0 0 12px rgba(0, 240, 255, 0.35), 0 0 40px rgba(0, 240, 255, 0.08);
+    --glow-magenta: 0 0 12px rgba(255, 0, 170, 0.35), 0 0 40px rgba(255, 0, 170, 0.08);
+    --font-display: 'Orbitron', sans-serif;
+    --font-body: 'Chakra Petch', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+}
+
+html {
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    background: var(--deep-bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-weight: 400;
+    line-height: 1.5;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Scanline overlay */
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 240, 255, 0.015) 2px,
+        rgba(0, 240, 255, 0.015) 4px
+    );
+}
+
+/* Ambient purple glow */
+body::before {
+    content: '';
+    position: fixed;
+    width: 900px;
+    height: 900px;
+    top: -300px;
+    right: -200px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+a {
+    color: var(--cyan);
+    text-decoration: none;
+}
+
+a:hover {
+    text-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+}
+
+/* Neon button (reusable) */
+.neon-btn {
+    display: inline-block;
+    padding: 12px 32px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--cyan);
+    background: rgba(0, 240, 255, 0.06);
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    border-radius: 6px;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.neon-btn:hover {
+    background: rgba(0, 240, 255, 0.12);
+    border-color: var(--cyan);
+    box-shadow: var(--glow-cyan);
+    text-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+}
+
+/* Page container */
+.neon-page {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+}
+
+/* Card panel */
+.neon-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 2.5rem;
+    max-width: 440px;
+    width: 100%;
+    backdrop-filter: blur(14px);
+}
+
+.neon-card-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.4rem;
+    letter-spacing: 0.04em;
+    color: #e8eef4;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+.neon-card-subtitle {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+/* Site branding */
+.neon-brand {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 1.1rem;
+    background: linear-gradient(135deg, var(--cyan) 0%, var(--purple) 60%, var(--magenta) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-decoration: none;
+    margin-bottom: 2rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
