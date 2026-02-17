@@ -5,7 +5,19 @@ from datetime import datetime
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from actiondash.models import WorkflowRun, WorkflowJob
+from actiondash.models import MonitoredRepo, WorkflowRun, WorkflowJob
+
+
+async def get_monitoring_user_ids(
+    session: AsyncSession, repo_full_name: str
+) -> list[str]:
+    """Return stringified user IDs for all users monitoring this repo."""
+    result = await session.execute(
+        select(MonitoredRepo.user_id).where(
+            MonitoredRepo.repo_full_name == repo_full_name
+        )
+    )
+    return [str(uid) for uid in result.scalars().all()]
 
 
 def _parse_gh_datetime(value: str | None) -> datetime | None:

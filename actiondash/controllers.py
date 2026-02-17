@@ -11,12 +11,13 @@ from litestar.response import Template as TemplateResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from skrift.auth.guards import auth_guard
-from skrift.lib.notifications import notify_broadcast
+from skrift.lib.notifications import notify_user, NotificationMode
 
 from actiondash.models import WorkflowRun
 from actiondash.services import (
     get_active_runs,
     get_jobs_for_run,
+    get_monitoring_user_ids,
     get_recent_runs,
     get_run_stats,
     upsert_workflow_job,
@@ -491,13 +492,20 @@ class WebhookController(Controller):
             run = await upsert_workflow_run(db_session, payload)
             await db_session.commit()
 
-            # Broadcast realtime update to all connected dashboard clients
-            await notify_broadcast(
-                "workflow_run",
-                group=f"run-{run.run_id}",
-                action=action,
-                run=run.to_dict(),
-            )
+            repo_name = payload["repository"]["full_name"]
+            user_ids = await get_monitoring_user_ids(db_session, repo_name)
+            for uid in user_ids:
+                try:
+                    await notify_user(
+                        uid,
+                        "workflow_run",
+                        group=f"run-{run.run_id}",
+                        mode=NotificationMode.TIMESERIES,
+                        action=action,
+                        run=run.to_dict(),
+                    )
+                except Exception:
+                    log.warning("Failed to notify user %s for run %d", uid, run.run_id)
 
             return Response(
                 content={"ok": True, "run_id": run.run_id}, status_code=200
@@ -507,12 +515,20 @@ class WebhookController(Controller):
             job = await upsert_workflow_job(db_session, payload)
             await db_session.commit()
 
-            await notify_broadcast(
-                "workflow_job",
-                group=f"job-{job.job_id}",
-                action=action,
-                job=job.to_dict(),
-            )
+            repo_name = payload["repository"]["full_name"]
+            user_ids = await get_monitoring_user_ids(db_session, repo_name)
+            for uid in user_ids:
+                try:
+                    await notify_user(
+                        uid,
+                        "workflow_job",
+                        group=f"job-{job.job_id}",
+                        mode=NotificationMode.TIMESERIES,
+                        action=action,
+                        job=job.to_dict(),
+                    )
+                except Exception:
+                    log.warning("Failed to notify user %s for job %d", uid, job.job_id)
 
             return Response(
                 content={"ok": True, "job_id": job.job_id}, status_code=200

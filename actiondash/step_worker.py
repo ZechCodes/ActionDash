@@ -7,15 +7,15 @@ Run with: uv run python -m actiondash.step_worker
 """
 
 import asyncio
-import json
 import logging
 import time
-from uuid import uuid4
 
-import redis.asyncio as aioredis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from skrift.config import get_settings
+from skrift.lib.notification_backends import RedisBackend
+from skrift.lib.notifications import NotificationMode, notify_user
+from skrift.lib.notifications import notifications
 
 from actiondash.step_poller import poll_loop
 
@@ -24,18 +24,24 @@ logger = logging.getLogger(__name__)
 _last_poll_at: float = 0.0
 
 
-async def _make_publish_fn(redis_client: aioredis.Redis, channel: str):
-    """Create a publish callback that writes directly to Redis."""
+def _make_publish_fn():
+    """Create a publish callback that uses Skrift's notify_user API."""
 
-    async def publish(type: str, *, group: str | None = None, **payload) -> None:
-        notification = {"type": type, "id": str(uuid4()), **payload}
-        if group is not None:
-            notification["group"] = group
-        message = json.dumps({"a": "b", "n": notification})
-        try:
-            await redis_client.publish(channel, message)
-        except Exception:
-            logger.warning("Failed to publish %s to Redis", type, exc_info=True)
+    async def publish(type: str, *, group: str | None = None, user_ids: list[str] | None = None, **payload) -> None:
+        if not user_ids:
+            logger.warning("No user_ids for %s notification, skipping", type)
+            return
+        for uid in user_ids:
+            try:
+                await notify_user(
+                    uid,
+                    type,
+                    group=group,
+                    mode=NotificationMode.TIMESERIES,
+                    **payload,
+                )
+            except Exception:
+                logger.warning("Failed to notify user %s for %s", uid, type, exc_info=True)
 
     return publish
 
@@ -87,11 +93,12 @@ async def _run() -> None:
     engine = create_async_engine(settings.db.url, pool_size=2, max_overflow=0)
     session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
-    redis_client = aioredis.Redis.from_url(settings.redis.url)
-    channel = settings.redis.make_key("skrift", "notifications")
-    logger.info("Publishing to Redis channel: %s", channel)
+    backend = RedisBackend(settings=settings, session_maker=session_maker)
+    notifications.set_backend(backend)
+    await backend.start()
+    logger.info("Skrift RedisBackend started for step worker")
 
-    publish_fn = await _make_publish_fn(redis_client, channel)
+    publish_fn = _make_publish_fn()
 
     # Mark as healthy immediately so the first poll cycle doesn't fail the probe
     global _last_poll_at
@@ -107,7 +114,7 @@ async def _run() -> None:
         await poll_loop(session_maker, publish_fn, on_cycle=_mark_alive)
     finally:
         health_task.cancel()
-        await redis_client.aclose()
+        await backend.stop()
         await engine.dispose()
 
 

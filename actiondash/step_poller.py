@@ -56,21 +56,31 @@ def _build_step_summary(jobs: list[dict]) -> dict:
     return summary
 
 
-async def _get_token_for_repo(
+async def _get_repo_context(
     session: AsyncSession, repo_full_name: str
-) -> str | None:
-    """Look up a GitHub token for a monitored repo via its owner."""
+) -> tuple[str | None, list[str]]:
+    """Look up a GitHub token and monitoring user IDs for a repo.
+
+    Returns (token, user_ids) where token comes from the first user with one.
+    """
     from actiondash.repo_services import get_user_github_token
 
     result = await session.execute(
         select(MonitoredRepo.user_id).where(
             MonitoredRepo.repo_full_name == repo_full_name
-        ).limit(1)
+        )
     )
-    user_id = result.scalar_one_or_none()
-    if not user_id:
-        return None
-    return await get_user_github_token(session, user_id)
+    all_user_ids = result.scalars().all()
+    if not all_user_ids:
+        return None, []
+
+    token = None
+    for uid in all_user_ids:
+        token = await get_user_github_token(session, uid)
+        if token:
+            break
+
+    return token, [str(uid) for uid in all_user_ids]
 
 
 async def _poll_once(session_maker: async_sessionmaker, publish_fn: PublishFn) -> dict:
@@ -85,11 +95,11 @@ async def _poll_once(session_maker: async_sessionmaker, publish_fn: PublishFn) -
         stats["active"] = len(active_runs)
         logger.debug("Step poller: %d active run(s)", len(active_runs))
 
-        # Group runs by repo for token lookup
-        repo_tokens: dict[str, str | None] = {}
+        # Group runs by repo for token + user_id lookup
+        repo_context: dict[str, tuple[str | None, list[str]]] = {}
         for run in active_runs:
-            if run.repo_full_name not in repo_tokens:
-                repo_tokens[run.repo_full_name] = await _get_token_for_repo(
+            if run.repo_full_name not in repo_context:
+                repo_context[run.repo_full_name] = await _get_repo_context(
                     session, run.repo_full_name
                 )
 
@@ -97,7 +107,7 @@ async def _poll_once(session_maker: async_sessionmaker, publish_fn: PublishFn) -
         active_run_ids = set()
         for run in active_runs:
             active_run_ids.add(run.run_id)
-            token = repo_tokens.get(run.repo_full_name)
+            token, user_ids = repo_context.get(run.repo_full_name, (None, []))
             if not token:
                 logger.warning(
                     "Step poller: no token for repo %s, skipping run %d",
@@ -131,6 +141,7 @@ async def _poll_once(session_maker: async_sessionmaker, publish_fn: PublishFn) -
                         run_id=run.run_id,
                         repo_full_name=run.repo_full_name,
                         jobs=summary,
+                        user_ids=user_ids,
                     )
                 except Exception:
                     logger.warning(
