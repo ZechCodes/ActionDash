@@ -38,13 +38,18 @@ class EnsureNeonThemeMiddleware:
 
         try:
             async with async_session() as session:
-                from skrift.db.services.setting_service import get_setting, set_setting, SITE_THEME_KEY
+                from skrift.db.services.setting_service import get_setting, set_setting, SITE_THEME_KEY, load_site_settings_cache
 
                 theme = await get_setting(session, SITE_THEME_KEY)
                 if not theme:
                     await set_setting(session, SITE_THEME_KEY, "neon")
-                    # Reload settings cache so theme is active
-                    from skrift.db.services.setting_service import load_site_settings_cache
-                    await load_site_settings_cache(session)
+
+                # Always reload the cache — the sync preload may have failed
+                # (e.g. missing psycopg2, incompatible DSN params)
+                await load_site_settings_cache(session)
+
+                # Update Jinja search path now that the theme is cached
+                from skrift.app_factory import update_template_directories
+                update_template_directories()
         finally:
             await engine.dispose()
