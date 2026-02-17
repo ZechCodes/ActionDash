@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terminal Matrix — ActionDash</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap');
+
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+  :root {
+    --black: #0c0c0c;
+    --dark: #141414;
+    --panel: #1a1a1a;
+    --border: #2a2a2a;
+    --green: #33ff66;
+    --green-dim: #1a8033;
+    --green-faint: rgba(51,255,102,0.06);
+    --amber: #ffaa00;
+    --red: #ff4444;
+    --text: #88cc88;
+    --text-dim: #446644;
+    --white: #ccddcc;
+  }
+
+  html { font-size: 14px; }
+
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: 'Fira Code', monospace;
+    font-weight: 400;
+    min-height: 100vh;
+  }
+
+  /* CRT scanlines + flicker */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      rgba(0,0,0,0.15) 1px,
+      rgba(0,0,0,0.15) 2px
+    );
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9998;
+    animation: crt-flicker 0.08s infinite;
+    background: rgba(51,255,102,0.008);
+  }
+  @keyframes crt-flicker {
+    0% { opacity: 0.97; }
+    50% { opacity: 1; }
+  }
+
+  /* matrix rain canvas */
+  #matrix-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.04;
+  }
+
+  /* demo nav */
+  .demo-nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 16px;
+    height: 36px;
+    background: rgba(12,12,12,0.95);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.78rem;
+  }
+  .demo-nav .nav-label {
+    color: var(--text-dim);
+    margin-right: 10px;
+    font-size: 0.68rem;
+  }
+  .demo-nav a {
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 4px 10px;
+    transition: all 0.2s;
+  }
+  .demo-nav a:hover { color: var(--green); }
+  .demo-nav a.active {
+    color: var(--green);
+    text-shadow: 0 0 8px rgba(51,255,102,0.5);
+  }
+  .demo-nav a.active::before { content: '> '; }
+
+  /* layout */
+  .app-shell {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: 100vh;
+    padding-top: 36px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* sidebar */
+  .sidebar {
+    background: var(--dark);
+    border-right: 1px solid var(--border);
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: sticky;
+    top: 36px;
+    height: calc(100vh - 36px);
+    overflow-y: auto;
+  }
+
+  .terminal-prompt {
+    color: var(--green);
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .terminal-prompt .cursor {
+    display: inline-block;
+    width: 7px; height: 14px;
+    background: var(--green);
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+
+  .sidebar-label {
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    border-bottom: 1px dashed var(--border);
+    padding-bottom: 4px;
+  }
+  .sidebar-label::before { content: '// '; }
+
+  .sidebar-search input {
+    width: 100%;
+    background: var(--black);
+    border: 1px solid var(--border);
+    padding: 7px 10px;
+    color: var(--green);
+    font-family: 'Fira Code', monospace;
+    font-size: 0.78rem;
+    outline: none;
+  }
+  .sidebar-search input::placeholder { color: var(--text-dim); }
+  .sidebar-search input:focus { border-color: var(--green-dim); }
+
+  .repo-list { display: flex; flex-direction: column; gap: 1px; }
+  .repo-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    font-size: 0.78rem;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .repo-item:hover { background: var(--green-faint); }
+  .repo-item .repo-name { color: var(--text); }
+  .repo-item .repo-name::before { content: './'; color: var(--text-dim); }
+
+  /* toggle */
+  .toggle-term {
+    font-size: 0.68rem;
+    padding: 1px 6px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    font-family: 'Fira Code', monospace;
+  }
+  .toggle-term.on { color: var(--green); border-color: var(--green-dim); }
+  .toggle-term.off { color: var(--text-dim); }
+
+  /* main */
+  .main-content {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 1000px;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+  }
+  .page-header h1 {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.3rem;
+    color: var(--green);
+    text-shadow: 0 0 20px rgba(51,255,102,0.3);
+    font-weight: 400;
+  }
+  .page-header h1::before { content: '$ '; color: var(--text-dim); }
+
+  .connection-badge {
+    font-size: 0.72rem;
+    color: var(--green);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .connection-badge::before { content: '['; color: var(--text-dim); }
+  .connection-badge::after { content: ']'; color: var(--text-dim); }
+  .connection-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: blink 2s step-end infinite;
+  }
+
+  /* stats */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+  .stat-card {
+    background: var(--dark);
+    padding: 14px 16px;
+  }
+  .stat-label {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .stat-label::before { content: '# '; }
+  .stat-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .stat-card:nth-child(1) .stat-value { color: var(--amber); text-shadow: 0 0 12px rgba(255,170,0,0.3); }
+  .stat-card:nth-child(2) .stat-value { color: var(--green); text-shadow: 0 0 12px rgba(51,255,102,0.3); }
+  .stat-card:nth-child(3) .stat-value { color: var(--red); text-shadow: 0 0 12px rgba(255,68,68,0.3); }
+  .stat-card:nth-child(4) .stat-value { color: var(--white); }
+
+  /* section headers */
+  .section-header {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    border-bottom: 1px dashed var(--border);
+    padding-bottom: 6px;
+  }
+  .section-header::before { content: '--- '; }
+  .section-header::after { content: ' ---'; }
+  .section-header .count { color: var(--green); }
+
+  /* run cards */
+  .runs-grid { display: flex; flex-direction: column; gap: 2px; }
+  .run-card {
+    background: var(--dark);
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: 100px 1fr auto;
+    gap: 16px;
+    align-items: center;
+    font-size: 0.78rem;
+    transition: all 0.15s;
+    animation: type-in 0.3s ease-out both;
+  }
+  .run-card:nth-child(1) { animation-delay: 0.05s; }
+  .run-card:nth-child(2) { animation-delay: 0.12s; }
+  .run-card:nth-child(3) { animation-delay: 0.19s; }
+  .run-card:nth-child(4) { animation-delay: 0.26s; }
+  .run-card:nth-child(5) { animation-delay: 0.33s; }
+
+  @keyframes type-in {
+    from { opacity: 0; transform: translateX(-6px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .run-card:hover { background: var(--panel); border-color: var(--green-dim); }
+
+  .run-status {
+    font-size: 0.72rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .run-status.running { color: var(--amber); }
+  .run-status.running .spinner {
+    display: inline-block;
+    animation: spin 0.8s steps(4) infinite;
+  }
+  @keyframes spin-chars {
+    0% { content: '|'; }
+    25% { content: '/'; }
+    50% { content: '-'; }
+    75% { content: '\\'; }
+  }
+  .run-status.pass { color: var(--green); }
+  .run-status.pass::before { content: '[PASS] '; }
+  .run-status.fail { color: var(--red); }
+  .run-status.fail::before { content: '[FAIL] '; }
+  .run-status.skip { color: var(--text-dim); }
+  .run-status.skip::before { content: '[SKIP] '; }
+
+  .run-info { min-width: 0; }
+  .run-workflow { color: var(--white); font-weight: 500; margin-bottom: 3px; }
+  .run-meta { color: var(--text-dim); font-size: 0.68rem; }
+  .run-meta span::before { content: ' | '; }
+  .run-meta span:first-child::before { content: ''; }
+
+  .run-actor {
+    text-align: right;
+    font-size: 0.72rem;
+  }
+  .actor-name { color: var(--text); }
+  .actor-name::before { content: '@'; color: var(--green-dim); }
+  .actor-time { color: var(--text-dim); font-size: 0.65rem; }
+
+  @media (max-width: 900px) {
+    .app-shell { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .stats-bar { grid-template-columns: 1fr; }
+    .run-card { grid-template-columns: 80px 1fr; }
+    .run-actor { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="matrix-bg"></canvas>
+
+<nav class="demo-nav">
+  <span class="nav-label">demos/</span>
+  <a href="01-neon-pulse.html">neon-pulse</a>
+  <a href="02-ivory-flow.html">ivory-flow</a>
+  <a href="03-terminal-matrix.html" class="active">terminal-matrix</a>
+  <a href="04-glass-depth.html">glass-depth</a>
+  <a href="05-data-canvas.html">data-canvas</a>
+</nav>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="terminal-prompt">actiondash@prod:~<span class="cursor"></span></div>
+    <div class="sidebar-label">repositories</div>
+    <div class="sidebar-search"><input type="text" placeholder="grep repos..." id="repoSearch" /></div>
+    <div class="repo-list" id="repoList">
+      <div class="repo-item"><span class="repo-name">actiondash</span><button class="toggle-term on" onclick="this.classList.toggle('on');this.classList.toggle('off');this.textContent=this.classList.contains('on')?'ON':'--'">[ON]</button></div>
+      <div class="repo-item"><span class="repo-name">skrift</span><button class="toggle-term on" onclick="this.classList.toggle('on');this.classList.toggle('off');this.textContent=this.classList.contains('on')?'ON':'--'">[ON]</button></div>
+      <div class="repo-item"><span class="repo-name">zech.sh</span><button class="toggle-term on" onclick="this.classList.toggle('on');this.classList.toggle('off');this.textContent=this.classList.contains('on')?'ON':'--'">[ON]</button></div>
+      <div class="repo-item"><span class="repo-name">infra-k8s</span><button class="toggle-term on" onclick="this.classList.toggle('on');this.classList.toggle('off');this.textContent=this.classList.contains('on')?'ON':'--'">[ON]</button></div>
+      <div class="repo-item"><span class="repo-name">api-gateway</span><button class="toggle-term off" onclick="this.classList.toggle('on');this.classList.toggle('off');this.textContent=this.classList.contains('on')?'ON':'--'">[--]</button></div>
+      <div class="repo-item"><span class="repo-name">design-system</span><button class="toggle-term off" onclick="this.classList.toggle('on');this.classList.toggle('off');this.textContent=this.classList.contains('on')?'ON':'--'">[--]</button></div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h1>actiondash --watch</h1>
+      <div class="connection-badge"><span class="connection-dot"></span> SSE_STREAM_ACTIVE</div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-card"><div class="stat-label">active</div><div class="stat-value">3</div></div>
+      <div class="stat-card"><div class="stat-label">passed</div><div class="stat-value">47</div></div>
+      <div class="stat-card"><div class="stat-label">failed</div><div class="stat-value">2</div></div>
+      <div class="stat-card"><div class="stat-label">rate</div><div class="stat-value">95.9%</div></div>
+    </div>
+
+    <section>
+      <div class="section-header">ACTIVE RUNS <span class="count">(3)</span></div>
+      <div class="runs-grid">
+        <div class="run-card">
+          <div class="run-status running"><span class="spinner" id="s1"></span> RUNNING</div>
+          <div class="run-info"><div class="run-workflow">CI/CD Pipeline</div><div class="run-meta"><span>actiondash</span><span>main</span><span>a3f8c21</span><span>push #184</span></div></div>
+          <div class="run-actor"><div class="actor-name">zechz</div><div class="actor-time">12s ago</div></div>
+        </div>
+        <div class="run-card">
+          <div class="run-status running"><span class="spinner" id="s2"></span> RUNNING</div>
+          <div class="run-info"><div class="run-workflow">Deploy to Production</div><div class="run-meta"><span>skrift</span><span>release/v2</span><span>e7b1d09</span><span>push #91</span></div></div>
+          <div class="run-actor"><div class="actor-name">mkdev</div><div class="actor-time">47s ago</div></div>
+        </div>
+        <div class="run-card">
+          <div class="run-status running"><span class="spinner" id="s3"></span> RUNNING</div>
+          <div class="run-info"><div class="run-workflow">Run Tests</div><div class="run-meta"><span>infra-k8s</span><span>feat/helm-charts</span><span>c44f0a2</span><span>PR #33</span></div></div>
+          <div class="run-actor"><div class="actor-name">sarahl</div><div class="actor-time">1m ago</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-header">RECENT RUNS <span class="count">(5)</span></div>
+      <div class="runs-grid">
+        <div class="run-card">
+          <div class="run-status pass">CI/CD Pipeline</div>
+          <div class="run-info"><div class="run-workflow">CI/CD Pipeline</div><div class="run-meta"><span>actiondash</span><span>main</span><span>154d13b</span><span>push #183</span></div></div>
+          <div class="run-actor"><div class="actor-name">zechz</div><div class="actor-time">8m ago</div></div>
+        </div>
+        <div class="run-card">
+          <div class="run-status fail">Deploy to Staging</div>
+          <div class="run-info"><div class="run-workflow">Deploy to Staging</div><div class="run-meta"><span>zech.sh</span><span>dev</span><span>f92ab17</span><span>push #56</span></div></div>
+          <div class="run-actor"><div class="actor-name">jreyes</div><div class="actor-time">22m ago</div></div>
+        </div>
+        <div class="run-card">
+          <div class="run-status pass">Lint & Format</div>
+          <div class="run-info"><div class="run-workflow">Lint & Format</div><div class="run-meta"><span>skrift</span><span>main</span><span>b8e6cc4</span><span>push #90</span></div></div>
+          <div class="run-actor"><div class="actor-name">mkdev</div><div class="actor-time">1h ago</div></div>
+        </div>
+        <div class="run-card">
+          <div class="run-status skip">E2E Test Suite</div>
+          <div class="run-info"><div class="run-workflow">E2E Test Suite</div><div class="run-meta"><span>actiondash</span><span>feat/webhooks</span><span>dc031e8</span><span>PR #182</span></div></div>
+          <div class="run-actor"><div class="actor-name">sarahl</div><div class="actor-time">2h ago</div></div>
+        </div>
+        <div class="run-card">
+          <div class="run-status pass">Build & Push Image</div>
+          <div class="run-info"><div class="run-workflow">Build & Push Image</div><div class="run-meta"><span>infra-k8s</span><span>main</span><span>7a9e1f0</span><span>push #32</span></div></div>
+          <div class="run-actor"><div class="actor-name">zechz</div><div class="actor-time">3h ago</div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  // spinning characters for running status
+  const chars = ['|', '/', '-', '\\'];
+  let i = 0;
+  setInterval(() => {
+    i = (i + 1) % chars.length;
+    document.querySelectorAll('.spinner').forEach(s => s.textContent = chars[i]);
+  }, 200);
+
+  // matrix rain
+  const canvas = document.getElementById('matrix-bg');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const cols = Math.floor(canvas.width / 14);
+  const drops = Array(cols).fill(1);
+  const matrixChars = 'ACTIONDASH01GitHubCICDPASS'.split('');
+
+  function drawMatrix() {
+    ctx.fillStyle = 'rgba(12,12,12,0.06)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#33ff66';
+    ctx.font = '12px "Fira Code", monospace';
+    for (let c = 0; c < cols; c++) {
+      const char = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+      ctx.fillText(char, c * 14, drops[c] * 14);
+      if (drops[c] * 14 > canvas.height && Math.random() > 0.975) drops[c] = 0;
+      drops[c]++;
+    }
+  }
+  setInterval(drawMatrix, 50);
+  window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+  // repo search
+  const searchInput = document.getElementById('repoSearch');
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.toLowerCase();
+    document.querySelectorAll('.repo-item').forEach(item => {
+      const name = item.querySelector('.repo-name').textContent.toLowerCase();
+      item.style.display = name.includes(q) ? '' : 'none';
+    });
+  });
+</script>
+</body>
+</html>

@@ -38,6 +38,9 @@ rate_limit:
   paths:
     "/webhooks": 300
 
+middleware:
+  - actiondash.middleware:EnsureNeonThemeMiddleware
+
 controllers:
   - skrift.controllers.auth:AuthController
   - skrift.admin.controller:AdminController

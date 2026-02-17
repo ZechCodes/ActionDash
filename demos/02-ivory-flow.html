@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ivory Flow — ActionDash</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+  :root {
+    --ivory: #faf8f4;
+    --cream: #f2efe8;
+    --warm-100: #e8e4db;
+    --warm-200: #d4cfc3;
+    --warm-300: #b8b1a1;
+    --ink: #1a1815;
+    --ink-soft: #3d3830;
+    --ink-muted: #8a8279;
+    --accent: #c45d3e;
+    --accent-soft: rgba(196,93,62,0.08);
+    --success: #3a7d5c;
+    --failure: #b54040;
+    --cancelled: #9a9288;
+    --shadow-sm: 0 1px 3px rgba(26,24,21,0.04);
+    --shadow-md: 0 4px 16px rgba(26,24,21,0.06);
+    --shadow-lg: 0 8px 32px rgba(26,24,21,0.08);
+  }
+
+  html { font-size: 15px; }
+
+  body {
+    background: var(--ivory);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── demo nav ── */
+  .demo-nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 28px;
+    height: 44px;
+    background: rgba(250,248,244,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--warm-100);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+  }
+  .demo-nav .nav-label {
+    color: var(--ink-muted);
+    margin-right: 14px;
+    text-transform: uppercase;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+  }
+  .demo-nav a {
+    color: var(--ink-muted);
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 5px;
+    transition: all 0.25s;
+  }
+  .demo-nav a:hover { color: var(--ink-soft); background: rgba(0,0,0,0.02); }
+  .demo-nav a.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    font-weight: 500;
+  }
+
+  /* ── layout ── */
+  .app-shell {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: 100vh;
+    padding-top: 44px;
+  }
+
+  /* ── sidebar ── */
+  .sidebar {
+    background: var(--cream);
+    border-right: 1px solid var(--warm-100);
+    padding: 28px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: sticky;
+    top: 44px;
+    height: calc(100vh - 44px);
+    overflow-y: auto;
+  }
+  .sidebar-brand {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .sidebar-brand span { color: var(--accent); }
+
+  .sidebar-search input {
+    width: 100%;
+    background: var(--ivory);
+    border: 1px solid var(--warm-200);
+    border-radius: 8px;
+    padding: 9px 14px;
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    outline: none;
+    transition: all 0.25s;
+  }
+  .sidebar-search input::placeholder { color: var(--warm-300); }
+  .sidebar-search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .sidebar-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-muted);
+  }
+  .repo-list { display: flex; flex-direction: column; gap: 2px; }
+  .repo-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 12px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .repo-item:hover { background: rgba(0,0,0,0.02); }
+  .repo-name { font-size: 0.84rem; font-weight: 500; color: var(--ink-soft); }
+  .repo-owner { font-size: 0.66rem; color: var(--ink-muted); font-family: 'IBM Plex Mono', monospace; }
+
+  /* elegant toggle */
+  .toggle { position: relative; width: 34px; height: 18px; flex-shrink: 0; }
+  .toggle input { display: none; }
+  .toggle .slider {
+    position: absolute; inset: 0;
+    background: var(--warm-200);
+    border-radius: 18px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .toggle .slider::before {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    left: 2px; top: 2px;
+    background: white;
+    border-radius: 50%;
+    transition: all 0.3s;
+    box-shadow: var(--shadow-sm);
+  }
+  .toggle input:checked + .slider { background: var(--accent); }
+  .toggle input:checked + .slider::before { transform: translateX(16px); }
+
+  /* ── main ── */
+  .main-content {
+    padding: 36px 44px;
+    max-width: 1000px;
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .page-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1.8rem;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .connection-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--success);
+  }
+  .connection-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    animation: soft-pulse 3s ease-in-out infinite;
+  }
+  @keyframes soft-pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* stats */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  .stat-card {
+    background: white;
+    border: 1px solid var(--warm-100);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s;
+  }
+  .stat-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .stat-label {
+    font-size: 0.68rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-muted);
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 2rem;
+    color: var(--ink);
+  }
+  .stat-card:nth-child(1) .stat-value { color: var(--accent); }
+  .stat-card:nth-child(2) .stat-value { color: var(--success); }
+  .stat-card:nth-child(3) .stat-value { color: var(--failure); }
+
+  /* section headers */
+  .section-header {
+    font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--ink);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-header .count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 400;
+    background: var(--cream);
+    color: var(--ink-muted);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  /* run cards */
+  .runs-grid { display: flex; flex-direction: column; gap: 8px; }
+  .run-card {
+    background: white;
+    border: 1px solid var(--warm-100);
+    border-radius: 12px;
+    padding: 18px 22px;
+    display: grid;
+    grid-template-columns: 34px 1fr auto;
+    gap: 16px;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s;
+    animation: fade-up 0.4s ease-out both;
+  }
+  .run-card:nth-child(1) { animation-delay: 0.05s; }
+  .run-card:nth-child(2) { animation-delay: 0.1s; }
+  .run-card:nth-child(3) { animation-delay: 0.15s; }
+  .run-card:nth-child(4) { animation-delay: 0.2s; }
+  .run-card:nth-child(5) { animation-delay: 0.25s; }
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .run-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+  .run-card.active { border-left: 3px solid var(--accent); }
+  .run-card.success { border-left: 3px solid var(--success); }
+  .run-card.failure { border-left: 3px solid var(--failure); }
+  .run-card.cancelled { border-left: 3px solid var(--cancelled); }
+
+  .status-icon {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+  }
+  .status-icon.in-progress {
+    background: var(--accent-soft);
+    color: var(--accent);
+    position: relative;
+  }
+  .status-icon.in-progress::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: var(--accent);
+    animation: spin 1.2s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .status-icon.success-icon { background: rgba(58,125,92,0.08); color: var(--success); }
+  .status-icon.failure-icon { background: rgba(181,64,64,0.08); color: var(--failure); }
+  .status-icon.cancelled-icon { background: rgba(154,146,136,0.08); color: var(--cancelled); }
+
+  .run-workflow { font-weight: 600; font-size: 0.9rem; color: var(--ink); margin-bottom: 4px; }
+  .run-workflow .active-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.58rem;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin-left: 6px;
+  }
+  .run-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--ink-muted);
+  }
+
+  .run-actor {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 0.58rem;
+    background: var(--cream);
+    color: var(--ink-soft);
+    border: 1px solid var(--warm-200);
+  }
+  .actor-name { font-size: 0.76rem; font-weight: 500; color: var(--ink-soft); }
+  .actor-time { font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: var(--ink-muted); }
+
+  @media (max-width: 900px) {
+    .app-shell { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--warm-100); }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .stats-bar { grid-template-columns: 1fr; }
+    .run-card { grid-template-columns: 30px 1fr; }
+    .run-actor { display: none; }
+    .main-content { padding: 24px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="demo-nav">
+  <span class="nav-label">Demos</span>
+  <a href="01-neon-pulse.html">Neon Pulse</a>
+  <a href="02-ivory-flow.html" class="active">Ivory Flow</a>
+  <a href="03-terminal-matrix.html">Terminal Matrix</a>
+  <a href="04-glass-depth.html">Glass Depth</a>
+  <a href="05-data-canvas.html">Data Canvas</a>
+</nav>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand">Action<span>Dash</span></div>
+    <div class="sidebar-search">
+      <input type="text" placeholder="Search repos..." id="repoSearch" />
+    </div>
+    <div class="sidebar-label">Monitored</div>
+    <div class="repo-list" id="repoList">
+      <div class="repo-item"><div><div class="repo-name">actiondash</div><div class="repo-owner">zech-sh</div></div><label class="toggle"><input type="checkbox" checked /><span class="slider"></span></label></div>
+      <div class="repo-item"><div><div class="repo-name">skrift</div><div class="repo-owner">zech-sh</div></div><label class="toggle"><input type="checkbox" checked /><span class="slider"></span></label></div>
+      <div class="repo-item"><div><div class="repo-name">zech.sh</div><div class="repo-owner">zech-sh</div></div><label class="toggle"><input type="checkbox" checked /><span class="slider"></span></label></div>
+      <div class="repo-item"><div><div class="repo-name">infra-k8s</div><div class="repo-owner">zech-sh</div></div><label class="toggle"><input type="checkbox" checked /><span class="slider"></span></label></div>
+      <div class="repo-item"><div><div class="repo-name">api-gateway</div><div class="repo-owner">zech-sh</div></div><label class="toggle"><input type="checkbox" /><span class="slider"></span></label></div>
+      <div class="repo-item"><div><div class="repo-name">design-system</div><div class="repo-owner">zech-sh</div></div><label class="toggle"><input type="checkbox" /><span class="slider"></span></label></div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h1>Dashboard</h1>
+      <div class="connection-badge"><span class="connection-dot"></span> Connected</div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-card"><div class="stat-label">Active Runs</div><div class="stat-value">3</div></div>
+      <div class="stat-card"><div class="stat-label">Succeeded</div><div class="stat-value">47</div></div>
+      <div class="stat-card"><div class="stat-label">Failed</div><div class="stat-value">2</div></div>
+      <div class="stat-card"><div class="stat-label">Success Rate</div><div class="stat-value">95.9%</div></div>
+    </div>
+
+    <section>
+      <div class="section-header">Active Runs <span class="count">3</span></div>
+      <div class="runs-grid">
+        <div class="run-card active">
+          <div class="status-icon in-progress">&#9654;</div>
+          <div class="run-info"><div class="run-workflow">CI/CD Pipeline<span class="active-badge">running</span></div><div class="run-meta"><span>zech-sh/actiondash</span><span>main</span><span>a3f8c21</span><span>push #184</span></div></div>
+          <div class="run-actor"><div class="avatar">ZZ</div><div><div class="actor-name">zechz</div><div class="actor-time">12s ago</div></div></div>
+        </div>
+        <div class="run-card active">
+          <div class="status-icon in-progress">&#9654;</div>
+          <div class="run-info"><div class="run-workflow">Deploy to Production<span class="active-badge">running</span></div><div class="run-meta"><span>zech-sh/skrift</span><span>release/v2</span><span>e7b1d09</span><span>push #91</span></div></div>
+          <div class="run-actor"><div class="avatar">MK</div><div><div class="actor-name">mkdev</div><div class="actor-time">47s ago</div></div></div>
+        </div>
+        <div class="run-card active">
+          <div class="status-icon in-progress">&#9654;</div>
+          <div class="run-info"><div class="run-workflow">Run Tests<span class="active-badge">running</span></div><div class="run-meta"><span>zech-sh/infra-k8s</span><span>feat/helm-charts</span><span>c44f0a2</span><span>PR #33</span></div></div>
+          <div class="run-actor"><div class="avatar">SL</div><div><div class="actor-name">sarahl</div><div class="actor-time">1m ago</div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-header">Recent Runs <span class="count">5</span></div>
+      <div class="runs-grid">
+        <div class="run-card success">
+          <div class="status-icon success-icon">&#10003;</div>
+          <div class="run-info"><div class="run-workflow">CI/CD Pipeline</div><div class="run-meta"><span>zech-sh/actiondash</span><span>main</span><span>154d13b</span><span>push #183</span></div></div>
+          <div class="run-actor"><div class="avatar">ZZ</div><div><div class="actor-name">zechz</div><div class="actor-time">8m ago</div></div></div>
+        </div>
+        <div class="run-card failure">
+          <div class="status-icon failure-icon">&#10007;</div>
+          <div class="run-info"><div class="run-workflow">Deploy to Staging</div><div class="run-meta"><span>zech-sh/zech.sh</span><span>dev</span><span>f92ab17</span><span>push #56</span></div></div>
+          <div class="run-actor"><div class="avatar">JR</div><div><div class="actor-name">jreyes</div><div class="actor-time">22m ago</div></div></div>
+        </div>
+        <div class="run-card success">
+          <div class="status-icon success-icon">&#10003;</div>
+          <div class="run-info"><div class="run-workflow">Lint & Format</div><div class="run-meta"><span>zech-sh/skrift</span><span>main</span><span>b8e6cc4</span><span>push #90</span></div></div>
+          <div class="run-actor"><div class="avatar">MK</div><div><div class="actor-name">mkdev</div><div class="actor-time">1h ago</div></div></div>
+        </div>
+        <div class="run-card cancelled">
+          <div class="status-icon cancelled-icon">&#9711;</div>
+          <div class="run-info"><div class="run-workflow">E2E Test Suite</div><div class="run-meta"><span>zech-sh/actiondash</span><span>feat/webhooks</span><span>dc031e8</span><span>PR #182</span></div></div>
+          <div class="run-actor"><div class="avatar">SL</div><div><div class="actor-name">sarahl</div><div class="actor-time">2h ago</div></div></div>
+        </div>
+        <div class="run-card success">
+          <div class="status-icon success-icon">&#10003;</div>
+          <div class="run-info"><div class="run-workflow">Build & Push Image</div><div class="run-meta"><span>zech-sh/infra-k8s</span><span>main</span><span>7a9e1f0</span><span>push #32</span></div></div>
+          <div class="run-actor"><div class="avatar">ZZ</div><div><div class="actor-name">zechz</div><div class="actor-time">3h ago</div></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  const searchInput = document.getElementById('repoSearch');
+  document.querySelectorAll('.repo-item').forEach(item => {
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.toLowerCase();
+      const name = item.querySelector('.repo-name').textContent.toLowerCase();
+      item.style.display = name.includes(q) ? '' : 'none';
+    });
+  });
+</script>
+</body>
+</html>

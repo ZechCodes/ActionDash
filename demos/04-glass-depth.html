@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glass Depth — ActionDash</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400&display=swap');
+
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+  :root {
+    --bg: #0f0f1a;
+    --glass: rgba(255,255,255,0.04);
+    --glass-border: rgba(255,255,255,0.08);
+    --glass-hover: rgba(255,255,255,0.07);
+    --text: #e4e4f0;
+    --text-dim: #6b6b8a;
+    --blue: #6366f1;
+    --blue-soft: rgba(99,102,241,0.12);
+    --teal: #2dd4bf;
+    --teal-soft: rgba(45,212,191,0.1);
+    --rose: #f43f5e;
+    --rose-soft: rgba(244,63,94,0.1);
+    --amber: #f59e0b;
+    --amber-soft: rgba(245,158,11,0.1);
+  }
+
+  html { font-size: 15px; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Sora', sans-serif;
+    font-weight: 400;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* animated gradient orbs */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(100px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .orb-1 {
+    width: 600px; height: 600px;
+    top: -200px; left: -100px;
+    background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+    animation: float-orb 20s ease-in-out infinite;
+  }
+  .orb-2 {
+    width: 500px; height: 500px;
+    bottom: -150px; right: -100px;
+    background: radial-gradient(circle, rgba(45,212,191,0.12) 0%, transparent 70%);
+    animation: float-orb 25s ease-in-out infinite reverse;
+  }
+  .orb-3 {
+    width: 400px; height: 400px;
+    top: 40%; left: 30%;
+    background: radial-gradient(circle, rgba(244,63,94,0.08) 0%, transparent 70%);
+    animation: float-orb 18s ease-in-out infinite 5s;
+  }
+  @keyframes float-orb {
+    0%,100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(40px, -30px) scale(1.05); }
+    66% { transform: translate(-20px, 20px) scale(0.95); }
+  }
+
+  /* demo nav */
+  .demo-nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 24px;
+    height: 44px;
+    background: rgba(15,15,26,0.7);
+    backdrop-filter: blur(24px) saturate(1.3);
+    border-bottom: 1px solid var(--glass-border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+  }
+  .demo-nav .nav-label {
+    color: var(--text-dim);
+    margin-right: 14px;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .demo-nav a {
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 8px;
+    transition: all 0.25s;
+  }
+  .demo-nav a:hover { color: var(--text); background: var(--glass); }
+  .demo-nav a.active {
+    color: var(--blue);
+    background: var(--blue-soft);
+  }
+
+  /* layout */
+  .app-shell {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    min-height: 100vh;
+    padding-top: 44px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* sidebar */
+  .sidebar {
+    background: rgba(15,15,26,0.5);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid var(--glass-border);
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    position: sticky;
+    top: 44px;
+    height: calc(100vh - 44px);
+    overflow-y: auto;
+  }
+  .sidebar-brand {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--blue) 0%, var(--teal) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .sidebar-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+  }
+  .sidebar-search input {
+    width: 100%;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'Sora', sans-serif;
+    font-size: 0.82rem;
+    outline: none;
+    transition: all 0.3s;
+    backdrop-filter: blur(10px);
+  }
+  .sidebar-search input::placeholder { color: var(--text-dim); }
+  .sidebar-search input:focus { border-color: rgba(99,102,241,0.3); box-shadow: 0 0 0 4px rgba(99,102,241,0.08); }
+
+  .repo-list { display: flex; flex-direction: column; gap: 3px; }
+  .repo-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+  .repo-item:hover { background: var(--glass); }
+  .repo-name { font-size: 0.84rem; font-weight: 500; }
+  .repo-owner { font-size: 0.66rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+
+  /* toggle */
+  .toggle { position: relative; width: 38px; height: 20px; flex-shrink: 0; }
+  .toggle input { display: none; }
+  .toggle .slider {
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.06);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.35s;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .toggle .slider::before {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    left: 3px; top: 2px;
+    background: var(--text-dim);
+    border-radius: 50%;
+    transition: all 0.35s cubic-bezier(0.68,-0.55,0.27,1.55);
+  }
+  .toggle input:checked + .slider {
+    background: var(--blue-soft);
+    border-color: rgba(99,102,241,0.3);
+  }
+  .toggle input:checked + .slider::before {
+    transform: translateX(18px);
+    background: var(--blue);
+    box-shadow: 0 0 10px rgba(99,102,241,0.4);
+  }
+
+  /* main */
+  .main-content {
+    padding: 28px 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    max-width: 1050px;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .page-header h1 {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 700;
+    font-size: 1.6rem;
+    letter-spacing: -0.02em;
+  }
+  .connection-badge {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--teal);
+    background: var(--teal-soft);
+    padding: 5px 12px;
+    border-radius: 20px;
+  }
+  .connection-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--teal);
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+  @keyframes glow-pulse {
+    0%,100% { box-shadow: 0 0 4px var(--teal); }
+    50% { box-shadow: 0 0 12px var(--teal); }
+  }
+
+  /* stats */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  .stat-card {
+    background: var(--glass);
+    backdrop-filter: blur(20px) saturate(1.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 20px;
+    transition: all 0.35s;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .stat-card:hover { background: var(--glass-hover); transform: translateY(-2px); }
+  .stat-label {
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+  }
+  .stat-value {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 800;
+    font-size: 2rem;
+    letter-spacing: -0.03em;
+  }
+  .stat-card:nth-child(1) .stat-value { color: var(--amber); }
+  .stat-card:nth-child(2) .stat-value { color: var(--teal); }
+  .stat-card:nth-child(3) .stat-value { color: var(--rose); }
+  .stat-card:nth-child(4) .stat-value { color: var(--blue); }
+
+  /* sections */
+  .section-header {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+    color: var(--text);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-header .count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    font-weight: 400;
+    color: var(--text-dim);
+    background: var(--glass);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  /* run cards */
+  .runs-grid { display: flex; flex-direction: column; gap: 8px; }
+  .run-card {
+    background: var(--glass);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 18px 22px;
+    display: grid;
+    grid-template-columns: 38px 1fr auto;
+    gap: 16px;
+    align-items: center;
+    transition: all 0.3s;
+    animation: glass-in 0.5s ease-out both;
+  }
+  .run-card:nth-child(1) { animation-delay: 0.05s; }
+  .run-card:nth-child(2) { animation-delay: 0.1s; }
+  .run-card:nth-child(3) { animation-delay: 0.15s; }
+  .run-card:nth-child(4) { animation-delay: 0.2s; }
+  .run-card:nth-child(5) { animation-delay: 0.25s; }
+
+  @keyframes glass-in {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .run-card:hover { background: var(--glass-hover); border-color: rgba(255,255,255,0.12); transform: translateY(-1px); }
+
+  .status-icon {
+    width: 38px; height: 38px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+  }
+  .status-icon.in-progress {
+    background: var(--amber-soft);
+    color: var(--amber);
+    position: relative;
+  }
+  .status-icon.in-progress::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 14px;
+    border: 2px solid transparent;
+    border-top-color: var(--amber);
+    animation: spin 1.2s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .status-icon.success-icon { background: var(--teal-soft); color: var(--teal); }
+  .status-icon.failure-icon { background: var(--rose-soft); color: var(--rose); }
+  .status-icon.cancelled-icon { background: rgba(107,107,138,0.1); color: var(--text-dim); }
+
+  .run-info { min-width: 0; }
+  .run-workflow {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .active-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.56rem;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--amber);
+    background: var(--amber-soft);
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+  .run-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+  }
+
+  .run-actor {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Manrope', sans-serif;
+    font-weight: 700;
+    font-size: 0.6rem;
+  }
+  .avatar.av-1 { background: var(--blue-soft); color: var(--blue); }
+  .avatar.av-2 { background: var(--teal-soft); color: var(--teal); }
+  .avatar.av-3 { background: var(--rose-soft); color: var(--rose); }
+  .avatar.av-4 { background: var(--amber-soft); color: var(--amber); }
+  .actor-name { font-size: 0.76rem; font-weight: 500; }
+  .actor-time { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--text-dim); }
+
+  @media (max-width: 900px) {
+    .app-shell { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .stats-bar { grid-template-columns: 1fr; }
+    .run-card { grid-template-columns: 34px 1fr; }
+    .run-actor { display: none; }
+    .main-content { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<nav class="demo-nav">
+  <span class="nav-label">Demos</span>
+  <a href="01-neon-pulse.html">Neon Pulse</a>
+  <a href="02-ivory-flow.html">Ivory Flow</a>
+  <a href="03-terminal-matrix.html">Terminal Matrix</a>
+  <a href="04-glass-depth.html" class="active">Glass Depth</a>
+  <a href="05-data-canvas.html">Data Canvas</a>
+</nav>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand">ActionDash</div>
+    <div class="sidebar-search"><input type="text" placeholder="Search repos..." id="repoSearch" /></div>
+    <div class="sidebar-label">Repositories</div>
+    <div class="repo-list" id="repoList">
+      <div class="repo-item"><div><div class="repo-name">actiondash</div><div class="repo-owner">zech-sh</div></div><label class="toggle"><input type="checkbox" checked /><span class="slider"></span></label></div>
+      <div class="repo-item"><div><div class="repo-name">skrift</div><div class="repo-owner">zech-sh</div></div><label class="toggle"><input type="checkbox" checked /><span class="slider"></span></label></div>
+      <div class="repo-item"><div><div class="repo-name">zech.sh</div><div class="repo-owner">zech-sh</div></div><label class="toggle"><input type="checkbox" checked /><span class="slider"></span></label></div>
+      <div class="repo-item"><div><div class="repo-name">infra-k8s</div><div class="repo-owner">zech-sh</div></div><label class="toggle"><input type="checkbox" checked /><span class="slider"></span></label></div>
+      <div class="repo-item"><div><div class="repo-name">api-gateway</div><div class="repo-owner">zech-sh</div></div><label class="toggle"><input type="checkbox" /><span class="slider"></span></label></div>
+      <div class="repo-item"><div><div class="repo-name">design-system</div><div class="repo-owner">zech-sh</div></div><label class="toggle"><input type="checkbox" /><span class="slider"></span></label></div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h1>Dashboard</h1>
+      <div class="connection-badge"><span class="connection-dot"></span> Live</div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-card"><div class="stat-label">Active Runs</div><div class="stat-value">3</div></div>
+      <div class="stat-card"><div class="stat-label">Succeeded</div><div class="stat-value">47</div></div>
+      <div class="stat-card"><div class="stat-label">Failed</div><div class="stat-value">2</div></div>
+      <div class="stat-card"><div class="stat-label">Success Rate</div><div class="stat-value">95.9%</div></div>
+    </div>
+
+    <section>
+      <div class="section-header">Active Runs <span class="count">3</span></div>
+      <div class="runs-grid">
+        <div class="run-card">
+          <div class="status-icon in-progress">&#9654;</div>
+          <div class="run-info"><div class="run-workflow">CI/CD Pipeline <span class="active-badge">running</span></div><div class="run-meta"><span>zech-sh/actiondash</span><span>main</span><span>a3f8c21</span><span>push #184</span></div></div>
+          <div class="run-actor"><div class="avatar av-1">ZZ</div><div><div class="actor-name">zechz</div><div class="actor-time">12s ago</div></div></div>
+        </div>
+        <div class="run-card">
+          <div class="status-icon in-progress">&#9654;</div>
+          <div class="run-info"><div class="run-workflow">Deploy to Production <span class="active-badge">running</span></div><div class="run-meta"><span>zech-sh/skrift</span><span>release/v2</span><span>e7b1d09</span><span>push #91</span></div></div>
+          <div class="run-actor"><div class="avatar av-2">MK</div><div><div class="actor-name">mkdev</div><div class="actor-time">47s ago</div></div></div>
+        </div>
+        <div class="run-card">
+          <div class="status-icon in-progress">&#9654;</div>
+          <div class="run-info"><div class="run-workflow">Run Tests <span class="active-badge">running</span></div><div class="run-meta"><span>zech-sh/infra-k8s</span><span>feat/helm-charts</span><span>c44f0a2</span><span>PR #33</span></div></div>
+          <div class="run-actor"><div class="avatar av-3">SL</div><div><div class="actor-name">sarahl</div><div class="actor-time">1m ago</div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-header">Recent Runs <span class="count">5</span></div>
+      <div class="runs-grid">
+        <div class="run-card">
+          <div class="status-icon success-icon">&#10003;</div>
+          <div class="run-info"><div class="run-workflow">CI/CD Pipeline</div><div class="run-meta"><span>zech-sh/actiondash</span><span>main</span><span>154d13b</span><span>push #183</span></div></div>
+          <div class="run-actor"><div class="avatar av-1">ZZ</div><div><div class="actor-name">zechz</div><div class="actor-time">8m ago</div></div></div>
+        </div>
+        <div class="run-card">
+          <div class="status-icon failure-icon">&#10007;</div>
+          <div class="run-info"><div class="run-workflow">Deploy to Staging</div><div class="run-meta"><span>zech-sh/zech.sh</span><span>dev</span><span>f92ab17</span><span>push #56</span></div></div>
+          <div class="run-actor"><div class="avatar av-4">JR</div><div><div class="actor-name">jreyes</div><div class="actor-time">22m ago</div></div></div>
+        </div>
+        <div class="run-card">
+          <div class="status-icon success-icon">&#10003;</div>
+          <div class="run-info"><div class="run-workflow">Lint & Format</div><div class="run-meta"><span>zech-sh/skrift</span><span>main</span><span>b8e6cc4</span><span>push #90</span></div></div>
+          <div class="run-actor"><div class="avatar av-2">MK</div><div><div class="actor-name">mkdev</div><div class="actor-time">1h ago</div></div></div>
+        </div>
+        <div class="run-card">
+          <div class="status-icon cancelled-icon">&#9711;</div>
+          <div class="run-info"><div class="run-workflow">E2E Test Suite</div><div class="run-meta"><span>zech-sh/actiondash</span><span>feat/webhooks</span><span>dc031e8</span><span>PR #182</span></div></div>
+          <div class="run-actor"><div class="avatar av-3">SL</div><div><div class="actor-name">sarahl</div><div class="actor-time">2h ago</div></div></div>
+        </div>
+        <div class="run-card">
+          <div class="status-icon success-icon">&#10003;</div>
+          <div class="run-info"><div class="run-workflow">Build & Push Image</div><div class="run-meta"><span>zech-sh/infra-k8s</span><span>main</span><span>7a9e1f0</span><span>push #32</span></div></div>
+          <div class="run-actor"><div class="avatar av-1">ZZ</div><div><div class="actor-name">zechz</div><div class="actor-time">3h ago</div></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  const searchInput = document.getElementById('repoSearch');
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.toLowerCase();
+    document.querySelectorAll('.repo-item').forEach(item => {
+      const name = item.querySelector('.repo-name').textContent.toLowerCase();
+      item.style.display = name.includes(q) ? '' : 'none';
+    });
+  });
+</script>
+</body>
+</html>

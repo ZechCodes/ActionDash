@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neon Pulse — ActionDash</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Chakra+Petch:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+  :root {
+    --cyan: #00f0ff;
+    --magenta: #ff00aa;
+    --purple: #8b5cf6;
+    --deep-bg: #06060e;
+    --card-bg: rgba(10,10,22,0.85);
+    --card-border: rgba(0,240,255,0.12);
+    --text: #c8d6e5;
+    --text-dim: #5a6a7a;
+    --success: #00ff88;
+    --failure: #ff3366;
+    --cancelled: #667788;
+    --glow-cyan: 0 0 12px rgba(0,240,255,0.35), 0 0 40px rgba(0,240,255,0.08);
+    --glow-magenta: 0 0 12px rgba(255,0,170,0.35), 0 0 40px rgba(255,0,170,0.08);
+    --glow-purple: 0 0 12px rgba(139,92,246,0.35), 0 0 40px rgba(139,92,246,0.08);
+  }
+
+  html { font-size: 15px; }
+
+  body {
+    background: var(--deep-bg);
+    color: var(--text);
+    font-family: 'Chakra Petch', sans-serif;
+    font-weight: 400;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── scanline overlay ── */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,240,255,0.015) 2px,
+      rgba(0,240,255,0.015) 4px
+    );
+  }
+
+  /* ── ambient glow blobs ── */
+  body::before {
+    content: '';
+    position: fixed;
+    width: 900px; height: 900px;
+    top: -300px; right: -200px;
+    background: radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── demo nav ── */
+  .demo-nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 24px;
+    height: 42px;
+    background: rgba(6,6,14,0.92);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(0,240,255,0.08);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+  }
+  .demo-nav .nav-label {
+    color: var(--text-dim);
+    margin-right: 12px;
+    text-transform: uppercase;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+  }
+  .demo-nav a {
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    transition: all 0.25s;
+    position: relative;
+  }
+  .demo-nav a:hover { color: var(--cyan); }
+  .demo-nav a.active {
+    color: var(--cyan);
+    background: rgba(0,240,255,0.06);
+    text-shadow: 0 0 10px rgba(0,240,255,0.5);
+  }
+  .demo-nav a.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 20%; right: 20%;
+    height: 1px;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+  }
+
+  /* ── layout ── */
+  .app-shell {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: auto 1fr;
+    min-height: 100vh;
+    padding-top: 42px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── sidebar ── */
+  .sidebar {
+    grid-row: 1 / -1;
+    background: rgba(8,8,18,0.95);
+    border-right: 1px solid rgba(0,240,255,0.06);
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: sticky;
+    top: 42px;
+    height: calc(100vh - 42px);
+    overflow-y: auto;
+  }
+  .sidebar-title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    text-shadow: 0 0 12px rgba(0,240,255,0.4);
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(0,240,255,0.08);
+  }
+  .sidebar-search {
+    position: relative;
+  }
+  .sidebar-search input {
+    width: 100%;
+    background: rgba(0,240,255,0.03);
+    border: 1px solid rgba(0,240,255,0.1);
+    border-radius: 6px;
+    padding: 9px 12px 9px 34px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    outline: none;
+    transition: all 0.3s;
+  }
+  .sidebar-search input::placeholder { color: var(--text-dim); }
+  .sidebar-search input:focus {
+    border-color: rgba(0,240,255,0.35);
+    box-shadow: 0 0 16px rgba(0,240,255,0.08);
+  }
+  .sidebar-search .search-icon {
+    position: absolute;
+    left: 11px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-dim);
+    font-size: 0.8rem;
+  }
+
+  .repo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .repo-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+  }
+  .repo-item:hover {
+    background: rgba(0,240,255,0.03);
+    border-color: rgba(0,240,255,0.06);
+  }
+  .repo-item .repo-name {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+  }
+  .repo-item .repo-owner {
+    font-size: 0.66rem;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* toggle switch */
+  .toggle {
+    position: relative;
+    width: 36px; height: 20px;
+    flex-shrink: 0;
+  }
+  .toggle input { display: none; }
+  .toggle .slider {
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.06);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .toggle .slider::before {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    left: 3px; top: 2px;
+    background: var(--text-dim);
+    border-radius: 50%;
+    transition: all 0.3s;
+  }
+  .toggle input:checked + .slider {
+    background: rgba(0,240,255,0.15);
+    border-color: rgba(0,240,255,0.3);
+    box-shadow: 0 0 10px rgba(0,240,255,0.15);
+  }
+  .toggle input:checked + .slider::before {
+    transform: translateX(16px);
+    background: var(--cyan);
+    box-shadow: 0 0 6px var(--cyan);
+  }
+
+  /* ── main content ── */
+  .main-content {
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    max-width: 1100px;
+  }
+
+  /* ── page header ── */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .page-header h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 1.6rem;
+    letter-spacing: 0.04em;
+    background: linear-gradient(135deg, var(--cyan) 0%, var(--purple) 60%, var(--magenta) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .connection-badge {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--success);
+    letter-spacing: 0.04em;
+  }
+  .connection-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%,100% { opacity: 1; box-shadow: 0 0 8px var(--success); }
+    50% { opacity: 0.5; box-shadow: 0 0 16px var(--success); }
+  }
+
+  /* ── stats bar ── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    border-radius: 10px 10px 0 0;
+  }
+  .stat-card:nth-child(1) { box-shadow: var(--glow-cyan); }
+  .stat-card:nth-child(1)::before { background: var(--cyan); box-shadow: 0 0 20px var(--cyan); }
+  .stat-card:nth-child(2) { box-shadow: 0 0 12px rgba(0,255,136,0.2); }
+  .stat-card:nth-child(2)::before { background: var(--success); box-shadow: 0 0 20px var(--success); }
+  .stat-card:nth-child(3) { box-shadow: var(--glow-magenta); }
+  .stat-card:nth-child(3)::before { background: var(--magenta); box-shadow: 0 0 20px var(--magenta); }
+  .stat-card:nth-child(4) { box-shadow: var(--glow-purple); }
+  .stat-card:nth-child(4)::before { background: var(--purple); box-shadow: 0 0 20px var(--purple); }
+
+  .stat-card:hover { transform: translateY(-2px); }
+
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 1.8rem;
+    letter-spacing: 0.02em;
+  }
+  .stat-card:nth-child(1) .stat-value { color: var(--cyan); text-shadow: 0 0 20px rgba(0,240,255,0.4); }
+  .stat-card:nth-child(2) .stat-value { color: var(--success); text-shadow: 0 0 20px rgba(0,255,136,0.4); }
+  .stat-card:nth-child(3) .stat-value { color: var(--magenta); text-shadow: 0 0 20px rgba(255,0,170,0.4); }
+  .stat-card:nth-child(4) .stat-value { color: var(--purple); text-shadow: 0 0 20px rgba(139,92,246,0.4); }
+
+  /* ── section headers ── */
+  .section-header {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .section-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(0,240,255,0.15) 0%, transparent 100%);
+  }
+  .section-header .count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    background: rgba(0,240,255,0.08);
+    color: var(--cyan);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 400;
+  }
+
+  /* ── run cards ── */
+  .runs-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .run-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 18px 22px;
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    gap: 16px;
+    align-items: center;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+    animation: card-enter 0.5s ease-out both;
+  }
+  .run-card:nth-child(1) { animation-delay: 0.05s; }
+  .run-card:nth-child(2) { animation-delay: 0.1s; }
+  .run-card:nth-child(3) { animation-delay: 0.15s; }
+  .run-card:nth-child(4) { animation-delay: 0.2s; }
+  .run-card:nth-child(5) { animation-delay: 0.25s; }
+
+  @keyframes card-enter {
+    from { opacity: 0; transform: translateX(-12px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .run-card:hover {
+    border-color: rgba(0,240,255,0.2);
+    box-shadow: 0 0 24px rgba(0,240,255,0.06);
+    transform: translateX(3px);
+  }
+
+  .run-card.active {
+    border-color: rgba(0,240,255,0.18);
+    box-shadow: var(--glow-cyan);
+  }
+  .run-card.active::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--cyan);
+    box-shadow: 0 0 12px var(--cyan);
+    animation: bar-glow 2s ease-in-out infinite;
+  }
+  @keyframes bar-glow {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .run-card.success { border-left: 2px solid rgba(0,255,136,0.3); }
+  .run-card.failure { border-left: 2px solid rgba(255,51,102,0.3); }
+  .run-card.cancelled { border-left: 2px solid rgba(102,119,136,0.3); }
+
+  /* status icon */
+  .status-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+  .status-icon.in-progress {
+    background: rgba(0,240,255,0.08);
+    color: var(--cyan);
+    position: relative;
+  }
+  .status-icon.in-progress::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: var(--cyan);
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .status-icon.success-icon {
+    background: rgba(0,255,136,0.08);
+    color: var(--success);
+  }
+  .status-icon.failure-icon {
+    background: rgba(255,51,102,0.08);
+    color: var(--failure);
+  }
+  .status-icon.cancelled-icon {
+    background: rgba(102,119,136,0.08);
+    color: var(--cancelled);
+  }
+
+  /* run info */
+  .run-info { min-width: 0; }
+  .run-workflow {
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: #e8eef4;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .run-workflow .active-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.58rem;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--cyan);
+    background: rgba(0,240,255,0.08);
+    padding: 2px 7px;
+    border-radius: 3px;
+    animation: badge-pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes badge-pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .run-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+  }
+  .run-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .run-meta .meta-icon { font-size: 0.72rem; opacity: 0.6; }
+
+  /* actor */
+  .run-actor {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 0.6rem;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+  }
+  .avatar.av-1 { background: rgba(0,240,255,0.12); color: var(--cyan); border: 1px solid rgba(0,240,255,0.2); }
+  .avatar.av-2 { background: rgba(139,92,246,0.12); color: var(--purple); border: 1px solid rgba(139,92,246,0.2); }
+  .avatar.av-3 { background: rgba(255,0,170,0.12); color: var(--magenta); border: 1px solid rgba(255,0,170,0.2); }
+  .avatar.av-4 { background: rgba(0,255,136,0.12); color: var(--success); border: 1px solid rgba(0,255,136,0.2); }
+
+  .actor-name {
+    font-size: 0.76rem;
+    color: var(--text);
+  }
+  .actor-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--text-dim);
+  }
+
+  /* ── responsive ── */
+  @media (max-width: 900px) {
+    .app-shell { grid-template-columns: 1fr; }
+    .sidebar {
+      position: static;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid rgba(0,240,255,0.06);
+    }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .stats-bar { grid-template-columns: 1fr; }
+    .run-card { grid-template-columns: 30px 1fr; }
+    .run-actor { display: none; }
+    .demo-nav { overflow-x: auto; }
+    .main-content { padding: 20px 16px; }
+  }
+
+  /* ── ambient animation behind stats ── */
+  .ambient-stripe {
+    position: absolute;
+    top: 0; left: -50%; right: -50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent 0%, rgba(0,240,255,0.02) 50%, transparent 100%);
+    animation: ambient-sweep 6s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes ambient-sweep {
+    0% { transform: translateX(-30%); }
+    50% { transform: translateX(30%); }
+    100% { transform: translateX(-30%); }
+  }
+</style>
+</head>
+<body>
+
+<!-- demo navigation -->
+<nav class="demo-nav">
+  <span class="nav-label">Demos</span>
+  <a href="01-neon-pulse.html" class="active">Neon Pulse</a>
+  <a href="02-ivory-flow.html">Ivory Flow</a>
+  <a href="03-terminal-matrix.html">Terminal Matrix</a>
+  <a href="04-glass-depth.html">Glass Depth</a>
+  <a href="05-data-canvas.html">Data Canvas</a>
+</nav>
+
+<div class="app-shell">
+
+  <!-- sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-title">Repositories</div>
+    <div class="sidebar-search">
+      <span class="search-icon">&#9906;</span>
+      <input type="text" placeholder="Search repos..." id="repoSearch" />
+    </div>
+    <div class="repo-list" id="repoList">
+      <div class="repo-item">
+        <div><div class="repo-name">actiondash</div><div class="repo-owner">zech-sh</div></div>
+        <label class="toggle"><input type="checkbox" checked /><span class="slider"></span></label>
+      </div>
+      <div class="repo-item">
+        <div><div class="repo-name">skrift</div><div class="repo-owner">zech-sh</div></div>
+        <label class="toggle"><input type="checkbox" checked /><span class="slider"></span></label>
+      </div>
+      <div class="repo-item">
+        <div><div class="repo-name">zech.sh</div><div class="repo-owner">zech-sh</div></div>
+        <label class="toggle"><input type="checkbox" checked /><span class="slider"></span></label>
+      </div>
+      <div class="repo-item">
+        <div><div class="repo-name">infra-k8s</div><div class="repo-owner">zech-sh</div></div>
+        <label class="toggle"><input type="checkbox" checked /><span class="slider"></span></label>
+      </div>
+      <div class="repo-item">
+        <div><div class="repo-name">api-gateway</div><div class="repo-owner">zech-sh</div></div>
+        <label class="toggle"><input type="checkbox" /><span class="slider"></span></label>
+      </div>
+      <div class="repo-item">
+        <div><div class="repo-name">design-system</div><div class="repo-owner">zech-sh</div></div>
+        <label class="toggle"><input type="checkbox" /><span class="slider"></span></label>
+      </div>
+    </div>
+  </aside>
+
+  <!-- main -->
+  <main class="main-content">
+
+    <div class="page-header">
+      <h1>ActionDash</h1>
+      <div class="connection-badge">
+        <span class="connection-dot"></span>
+        LIVE
+      </div>
+    </div>
+
+    <!-- stats -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="ambient-stripe"></div>
+        <div class="stat-label">Active Runs</div>
+        <div class="stat-value">3</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Succeeded</div>
+        <div class="stat-value">47</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Failed</div>
+        <div class="stat-value">2</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Success Rate</div>
+        <div class="stat-value">95.9<span style="font-size:0.9rem;opacity:0.6">%</span></div>
+      </div>
+    </div>
+
+    <!-- active runs -->
+    <section>
+      <div class="section-header">
+        Active Runs <span class="count">3</span>
+      </div>
+      <div class="runs-grid">
+
+        <div class="run-card active">
+          <div class="status-icon in-progress">&#9654;</div>
+          <div class="run-info">
+            <div class="run-workflow">CI/CD Pipeline <span class="active-badge">running</span></div>
+            <div class="run-meta">
+              <span><span class="meta-icon">&#9783;</span> zech-sh/actiondash</span>
+              <span><span class="meta-icon">&#9095;</span> main</span>
+              <span>a3f8c21</span>
+              <span>push &middot; #184</span>
+            </div>
+          </div>
+          <div class="run-actor">
+            <div class="avatar av-1">ZZ</div>
+            <div>
+              <div class="actor-name">zechz</div>
+              <div class="actor-time">12s ago</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="run-card active">
+          <div class="status-icon in-progress">&#9654;</div>
+          <div class="run-info">
+            <div class="run-workflow">Deploy to Production <span class="active-badge">running</span></div>
+            <div class="run-meta">
+              <span><span class="meta-icon">&#9783;</span> zech-sh/skrift</span>
+              <span><span class="meta-icon">&#9095;</span> release/v2</span>
+              <span>e7b1d09</span>
+              <span>push &middot; #91</span>
+            </div>
+          </div>
+          <div class="run-actor">
+            <div class="avatar av-2">MK</div>
+            <div>
+              <div class="actor-name">mkdev</div>
+              <div class="actor-time">47s ago</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="run-card active">
+          <div class="status-icon in-progress">&#9654;</div>
+          <div class="run-info">
+            <div class="run-workflow">Run Tests <span class="active-badge">running</span></div>
+            <div class="run-meta">
+              <span><span class="meta-icon">&#9783;</span> zech-sh/infra-k8s</span>
+              <span><span class="meta-icon">&#9095;</span> feat/helm-charts</span>
+              <span>c44f0a2</span>
+              <span>pull_request &middot; #33</span>
+            </div>
+          </div>
+          <div class="run-actor">
+            <div class="avatar av-3">SL</div>
+            <div>
+              <div class="actor-name">sarahl</div>
+              <div class="actor-time">1m ago</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- recent runs -->
+    <section>
+      <div class="section-header">
+        Recent Runs <span class="count">5</span>
+      </div>
+      <div class="runs-grid">
+
+        <div class="run-card success">
+          <div class="status-icon success-icon">&#10003;</div>
+          <div class="run-info">
+            <div class="run-workflow">CI/CD Pipeline</div>
+            <div class="run-meta">
+              <span><span class="meta-icon">&#9783;</span> zech-sh/actiondash</span>
+              <span><span class="meta-icon">&#9095;</span> main</span>
+              <span>154d13b</span>
+              <span>push &middot; #183</span>
+            </div>
+          </div>
+          <div class="run-actor">
+            <div class="avatar av-1">ZZ</div>
+            <div>
+              <div class="actor-name">zechz</div>
+              <div class="actor-time">8m ago</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="run-card failure">
+          <div class="status-icon failure-icon">&#10007;</div>
+          <div class="run-info">
+            <div class="run-workflow">Deploy to Staging</div>
+            <div class="run-meta">
+              <span><span class="meta-icon">&#9783;</span> zech-sh/zech.sh</span>
+              <span><span class="meta-icon">&#9095;</span> dev</span>
+              <span>f92ab17</span>
+              <span>push &middot; #56</span>
+            </div>
+          </div>
+          <div class="run-actor">
+            <div class="avatar av-4">JR</div>
+            <div>
+              <div class="actor-name">jreyes</div>
+              <div class="actor-time">22m ago</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="run-card success">
+          <div class="status-icon success-icon">&#10003;</div>
+          <div class="run-info">
+            <div class="run-workflow">Lint & Format</div>
+            <div class="run-meta">
+              <span><span class="meta-icon">&#9783;</span> zech-sh/skrift</span>
+              <span><span class="meta-icon">&#9095;</span> main</span>
+              <span>b8e6cc4</span>
+              <span>push &middot; #90</span>
+            </div>
+          </div>
+          <div class="run-actor">
+            <div class="avatar av-2">MK</div>
+            <div>
+              <div class="actor-name">mkdev</div>
+              <div class="actor-time">1h ago</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="run-card cancelled">
+          <div class="status-icon cancelled-icon">&#9711;</div>
+          <div class="run-info">
+            <div class="run-workflow">E2E Test Suite</div>
+            <div class="run-meta">
+              <span><span class="meta-icon">&#9783;</span> zech-sh/actiondash</span>
+              <span><span class="meta-icon">&#9095;</span> feat/webhooks</span>
+              <span>dc031e8</span>
+              <span>pull_request &middot; #182</span>
+            </div>
+          </div>
+          <div class="run-actor">
+            <div class="avatar av-3">SL</div>
+            <div>
+              <div class="actor-name">sarahl</div>
+              <div class="actor-time">2h ago</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="run-card success">
+          <div class="status-icon success-icon">&#10003;</div>
+          <div class="run-info">
+            <div class="run-workflow">Build & Push Image</div>
+            <div class="run-meta">
+              <span><span class="meta-icon">&#9783;</span> zech-sh/infra-k8s</span>
+              <span><span class="meta-icon">&#9095;</span> main</span>
+              <span>7a9e1f0</span>
+              <span>push &middot; #32</span>
+            </div>
+          </div>
+          <div class="run-actor">
+            <div class="avatar av-1">ZZ</div>
+            <div>
+              <div class="actor-name">zechz</div>
+              <div class="actor-time">3h ago</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  // repo search filter
+  const searchInput = document.getElementById('repoSearch');
+  const repoItems = document.querySelectorAll('.repo-item');
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.toLowerCase();
+    repoItems.forEach(item => {
+      const name = item.querySelector('.repo-name').textContent.toLowerCase();
+      item.style.display = name.includes(q) ? '' : 'none';
+    });
+  });
+
+  // simulated live counter tick on active runs stat
+  const activeStatValue = document.querySelector('.stat-card:nth-child(1) .stat-value');
+  let activeCount = 3;
+  setInterval(() => {
+    activeStatValue.style.textShadow = '0 0 30px rgba(0,240,255,0.8)';
+    setTimeout(() => {
+      activeStatValue.style.textShadow = '0 0 20px rgba(0,240,255,0.4)';
+    }, 300);
+  }, 4000);
+</script>
+</body>
+</html>
