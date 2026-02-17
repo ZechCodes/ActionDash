@@ -395,5 +395,10 @@
     updateActorTimes();
     setInterval(updateActorTimes, 30000);
 
-    // --- Init (no-op: Skrift's notifications.js owns the SSE connection) ---
+    // --- Keep SSE alive when tab is blurred (step progress needs continuous updates) ---
+    var sn = window.__skriftNotifications;
+    if (sn && sn._onBlur) {
+        window.removeEventListener("blur", sn._onBlur);
+        window.removeEventListener("focus", sn._onFocus);
+    }
 })();
