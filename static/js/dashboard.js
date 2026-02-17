@@ -23,11 +23,22 @@
         document.body.appendChild(indicator);
     }
 
+    var sseKeptAlive = false;
     document.addEventListener("sk:notification-status", function (e) {
         if (e.detail.status === "connected") {
             indicator.className = "connection-status connected";
             indicator.textContent = "Live";
             setTimeout(function () { indicator.style.opacity = "0.4"; }, 3000);
+
+            // Keep SSE alive when tab loses focus (step progress needs continuous updates)
+            if (!sseKeptAlive) {
+                sseKeptAlive = true;
+                var sn = window.__skriftNotifications;
+                if (sn && sn._onBlur) {
+                    window.removeEventListener("blur", sn._onBlur);
+                    window.removeEventListener("focus", sn._onFocus);
+                }
+            }
         } else if (e.detail.status === "suspended") {
             indicator.className = "connection-status disconnected";
             indicator.textContent = "Disconnected";
@@ -395,10 +406,4 @@
     updateActorTimes();
     setInterval(updateActorTimes, 30000);
 
-    // --- Keep SSE alive when tab is blurred (step progress needs continuous updates) ---
-    var sn = window.__skriftNotifications;
-    if (sn && sn._onBlur) {
-        window.removeEventListener("blur", sn._onBlur);
-        window.removeEventListener("focus", sn._onFocus);
-    }
 })();
