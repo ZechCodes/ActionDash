@@ -1369,17 +1369,96 @@ body::before {
 }
 
 
-/* ── 17. Responsive ── */
+/* ── 17. Hamburger Toggle (hidden on desktop) ── */
+.sidebar-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    width: 36px;
+    height: 36px;
+    padding: 6px;
+    background: none;
+    border: 1px solid rgba(0, 240, 255, 0.15);
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.3s;
+}
+
+.sidebar-toggle:hover {
+    border-color: var(--cyan);
+    box-shadow: var(--glow-cyan);
+}
+
+.sidebar-toggle-bar {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: var(--cyan);
+    border-radius: 2px;
+    transition: all 0.3s;
+}
+
+.sidebar-toggle.open .sidebar-toggle-bar:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+}
+
+.sidebar-toggle.open .sidebar-toggle-bar:nth-child(2) {
+    opacity: 0;
+}
+
+.sidebar-toggle.open .sidebar-toggle-bar:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+}
+
+/* Sidebar backdrop overlay (mobile only) */
+.sidebar-backdrop {
+    display: none;
+}
+
+
+/* ── 18. Responsive ── */
 @media (max-width: 900px) {
+    .sidebar-toggle {
+        display: flex;
+    }
+
     .dash-layout {
         grid-template-columns: 1fr;
     }
 
     .dash-sidebar {
-        position: static;
-        height: auto;
-        border-right: none;
-        border-bottom: 1px solid rgba(0, 240, 255, 0.06);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 280px;
+        height: 100vh;
+        z-index: 100;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        border-right: 1px solid rgba(0, 240, 255, 0.1);
+        border-bottom: none;
+    }
+
+    .dash-sidebar.open {
+        transform: translateX(0);
+    }
+
+    .sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(6, 6, 14, 0.75);
+        z-index: 99;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+
+    .sidebar-backdrop.open {
+        opacity: 1;
+        pointer-events: auto;
     }
 
     .dash-main {
@@ -1393,7 +1472,7 @@ body::before {
 
 @media (max-width: 640px) {
     .dash-stats {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
     }
 
     .run-card {
@@ -1414,5 +1493,13 @@ body::before {
     .run-detail-meta {
         flex-direction: column;
         gap: 8px;
+    }
+
+    .stat-card {
+        padding: 14px 16px;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
     }
 }
