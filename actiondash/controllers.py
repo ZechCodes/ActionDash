@@ -31,13 +31,16 @@ class DashboardController(Controller):
     """Serves the dashboard UI and API endpoints."""
 
     path = "/"
-    guards = [auth_guard]
 
     @get("/")
     async def index(
         self, request: Request, db_session: AsyncSession
     ) -> TemplateResponse:
         """Main dashboard page."""
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return TemplateResponse("index.html", context={"user": None})
+
         repo = request.query_params.get("repo")
         stats = await get_run_stats(db_session, repo_full_name=repo)
         active_runs = await get_active_runs(db_session, repo_full_name=repo)
@@ -59,7 +62,7 @@ class DashboardController(Controller):
             },
         )
 
-    @get("/runs/{run_id:int}")
+    @get("/runs/{run_id:int}", guards=[auth_guard])
     async def run_detail(
         self, request: Request, db_session: AsyncSession, run_id: int
     ) -> TemplateResponse:
@@ -87,7 +90,7 @@ class DashboardController(Controller):
             },
         )
 
-    @get("/api/runs")
+    @get("/api/runs", guards=[auth_guard])
     async def api_runs(
         self, request: Request, db_session: AsyncSession
     ) -> Response:
@@ -101,7 +104,7 @@ class DashboardController(Controller):
             status_code=200,
         )
 
-    @get("/api/active")
+    @get("/api/active", guards=[auth_guard])
     async def api_active(
         self, request: Request, db_session: AsyncSession
     ) -> Response:
@@ -113,7 +116,7 @@ class DashboardController(Controller):
             status_code=200,
         )
 
-    @get("/api/stats")
+    @get("/api/stats", guards=[auth_guard])
     async def api_stats(
         self, request: Request, db_session: AsyncSession
     ) -> Response:
