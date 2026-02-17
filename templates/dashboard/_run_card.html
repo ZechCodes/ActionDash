@@ -34,6 +34,19 @@
             {% endif %}
             <span>{{ run.event }} &middot; #{{ run.run_number }}</span>
         </div>
+        {% if step_data is defined and run.run_id in step_data %}
+            {% set ns = namespace(found=false) %}
+            {% for job_id, job in step_data[run.run_id].items() %}
+                {% if not ns.found and job.status == 'in_progress' and job.current_step %}
+                <div class="run-step-progress">
+                    <span class="step-indicator"></span>
+                    <span class="step-name">{{ job.current_step }}</span>
+                    <span class="step-count">{{ job.completed_steps }}/{{ job.total_steps }}</span>
+                </div>
+                    {% set ns.found = true %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
     </div>
 
     <!-- Col 3: Actor + link -->
