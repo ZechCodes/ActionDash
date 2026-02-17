@@ -1,17 +1,16 @@
 """Background poller for GitHub Actions step progress on active runs.
 
 Polls the GitHub API every 5 seconds for step-level detail on in-progress
-runs, then broadcasts changes via SSE to all connected dashboard clients.
+runs, then broadcasts changes via a caller-supplied publish callback.
 """
 
 import asyncio
 import logging
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
-from skrift.config import get_settings
-from skrift.lib.notifications import notify_broadcast
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from actiondash.github_client import GitHubClient
 from actiondash.models import MonitoredRepo
@@ -22,13 +21,10 @@ logger = logging.getLogger(__name__)
 POLL_INTERVAL = 5  # seconds
 _HEARTBEAT_EVERY = 12  # log heartbeat every 12 cycles (~60s)
 
-_poll_task: asyncio.Task | None = None
+# Type alias for the publish callback
+PublishFn = Callable[..., Coroutine[Any, Any, None]]
+
 _step_cache: dict[int, dict] = {}  # run_id -> last step summary
-
-
-def get_step_cache() -> dict[int, dict]:
-    """Read-only accessor for the step cache (run_id -> job summary dict)."""
-    return _step_cache
 
 
 def _extract_current_step(steps: list[dict]) -> str | None:
@@ -77,13 +73,12 @@ async def _get_token_for_repo(
     return await get_user_github_token(session, user_id)
 
 
-async def _poll_once(session_maker: async_sessionmaker) -> dict:
+async def _poll_once(session_maker: async_sessionmaker, publish_fn: PublishFn) -> dict:
     """Execute a single poll cycle. Returns stats dict for heartbeat."""
     stats = {"active": 0, "polled": 0, "broadcast": 0, "skipped_no_token": 0, "errors": 0}
     async with session_maker() as session:
         active_runs = await get_active_runs(session)
         if not active_runs:
-            # Prune entire cache when no active runs
             _step_cache.clear()
             return stats
 
@@ -129,13 +124,21 @@ async def _poll_once(session_maker: async_sessionmaker) -> dict:
 
             if summary != prev:
                 _step_cache[run.run_id] = summary
-                await notify_broadcast(
-                    "step_progress",
-                    group=f"steps-{run.run_id}",
-                    run_id=run.run_id,
-                    repo_full_name=run.repo_full_name,
-                    jobs=summary,
-                )
+                try:
+                    await publish_fn(
+                        "step_progress",
+                        group=f"steps-{run.run_id}",
+                        run_id=run.run_id,
+                        repo_full_name=run.repo_full_name,
+                        jobs=summary,
+                    )
+                except Exception:
+                    logger.warning(
+                        "Step poller: failed to publish for run %d",
+                        run.run_id, exc_info=True,
+                    )
+                    stats["errors"] += 1
+                    continue
                 stats["broadcast"] += 1
                 logger.info(
                     "Step poller: broadcast step_progress for run %d (%d job(s))",
@@ -150,18 +153,25 @@ async def _poll_once(session_maker: async_sessionmaker) -> dict:
     return stats
 
 
-async def _poll_loop(session_maker: async_sessionmaker) -> None:
+async def poll_loop(
+    session_maker: async_sessionmaker,
+    publish_fn: PublishFn,
+    on_cycle: Callable[[], None] | None = None,
+) -> None:
     """Infinite polling loop with error recovery."""
     logger.info("Step progress poller started (interval=%ds)", POLL_INTERVAL)
     cycle = 0
     while True:
         try:
-            stats = await _poll_once(session_maker)
+            stats = await _poll_once(session_maker, publish_fn)
         except asyncio.CancelledError:
             raise
         except Exception:
             logger.warning("Step poller error, will retry", exc_info=True)
             stats = None
+
+        if on_cycle is not None:
+            on_cycle()
 
         cycle += 1
         if cycle % _HEARTBEAT_EVERY == 0:
@@ -172,29 +182,3 @@ async def _poll_loop(session_maker: async_sessionmaker) -> None:
             )
 
         await asyncio.sleep(POLL_INTERVAL)
-
-
-async def start_step_poller(app) -> None:
-    """on_startup hook — start the background polling task."""
-    global _poll_task
-
-    settings = get_settings()
-    engine = create_async_engine(settings.db.url, pool_size=2, max_overflow=0)
-    session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-    _poll_task = asyncio.create_task(_poll_loop(session_maker))
-
-
-async def stop_step_poller(app) -> None:
-    """on_shutdown hook — cancel the polling task."""
-    global _poll_task
-
-    if _poll_task is not None:
-        _poll_task.cancel()
-        try:
-            await _poll_task
-        except asyncio.CancelledError:
-            pass
-        _poll_task = None
-
-    logger.info("Step progress poller stopped")

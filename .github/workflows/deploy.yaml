@@ -58,3 +58,9 @@ jobs:
           sed "s|image: zzmmrmn/actiondash:latest|image: ${{ env.IMAGE }}:${{ github.sha }}|" \
             k8s/deploy-actiondash.yaml | kubectl apply -f -
           kubectl rollout status deployment/actiondash --timeout=300s
+
+      - name: Deploy step worker
+        run: |
+          sed "s|image: zzmmrmn/actiondash:latest|image: ${{ env.IMAGE }}:${{ github.sha }}|" \
+            k8s/deploy-step-worker.yaml | kubectl apply -f -
+          kubectl rollout status deployment/actiondash-step-worker --timeout=300s

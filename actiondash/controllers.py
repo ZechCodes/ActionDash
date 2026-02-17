@@ -14,7 +14,6 @@ from skrift.auth.guards import auth_guard
 from skrift.lib.notifications import notify_broadcast
 
 from actiondash.models import WorkflowRun
-from actiondash.step_poller import get_step_cache
 from actiondash.services import (
     get_active_runs,
     get_jobs_for_run,
@@ -51,22 +50,12 @@ class DashboardController(Controller):
         user = await self._get_user(request, db_session)
         has_github = await self._has_github_token(db_session, user) if user else False
 
-        # Attach cached step data for active runs so the template can
-        # render step progress immediately (before any SSE events arrive).
-        step_cache = get_step_cache()
-        step_data = {
-            run.run_id: step_cache[run.run_id]
-            for run in active_runs
-            if run.run_id in step_cache
-        }
-
         return TemplateResponse(
             "dashboard/index.html",
             context={
                 "stats": stats,
                 "active_runs": active_runs,
                 "recent_runs": recent_runs,
-                "step_data": step_data,
                 "user": user,
                 "current_repo": repo,
                 "has_github": has_github,
