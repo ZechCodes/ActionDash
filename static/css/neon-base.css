@@ -159,6 +159,103 @@ a:hover {
     margin-bottom: 2rem;
 }
 
+/* Landing page hero */
+.landing-hero {
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+
+.landing-hero h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.6rem;
+    letter-spacing: 0.04em;
+    color: #e8eef4;
+    margin-bottom: 12px;
+}
+
+.landing-hero p {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+    margin-bottom: 28px;
+}
+
+/* OAuth buttons */
+.oauth-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.oauth-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 14px 1.5rem;
+    border-radius: 8px;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--text);
+    background: rgba(0, 240, 255, 0.04);
+    border: 1px solid var(--card-border);
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.oauth-btn:hover {
+    background: rgba(0, 240, 255, 0.1);
+    border-color: var(--cyan);
+    box-shadow: var(--glow-cyan);
+    text-shadow: none;
+}
+
+.oauth-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+    flex-shrink: 0;
+}
+
+.oauth-btn-github { color: #e8eef4; }
+.oauth-btn-google { color: #e8eef4; }
+.oauth-btn-microsoft { color: #e8eef4; }
+.oauth-btn-discord { color: #e8eef4; }
+.oauth-btn-facebook { color: #e8eef4; }
+.oauth-btn-twitter { color: #e8eef4; }
+
+.oauth-btn-github:hover { border-color: #e8eef4; box-shadow: 0 0 12px rgba(232, 238, 244, 0.15); }
+.oauth-btn-google:hover { border-color: #4285f4; box-shadow: 0 0 12px rgba(66, 133, 244, 0.25); }
+.oauth-btn-discord:hover { border-color: #5865f2; box-shadow: 0 0 12px rgba(88, 101, 242, 0.25); }
+
+.login-divider {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--card-border);
+    text-align: center;
+}
+
+.login-divider p {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 0.75rem;
+}
+
+.no-providers {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    text-align: center;
+    padding: 1rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         animation-duration: 0.01ms !important;

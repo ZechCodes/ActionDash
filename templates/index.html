@@ -6,133 +6,20 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Chakra+Petch:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-    :root {
-        --cyan: #00f0ff;
-        --magenta: #ff00aa;
-        --purple: #8b5cf6;
-        --deep-bg: #06060e;
-    }
-
-    body {
-        background: var(--deep-bg);
-        color: #c8d6e5;
-        font-family: 'Chakra Petch', sans-serif;
-        overflow-x: hidden;
-    }
-
-    body::after {
-        content: '';
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        z-index: 9999;
-        background: repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 2px,
-            rgba(0,240,255,0.015) 2px,
-            rgba(0,240,255,0.015) 4px
-        );
-    }
-
-    body::before {
-        content: '';
-        position: fixed;
-        width: 900px;
-        height: 900px;
-        top: -300px;
-        right: -200px;
-        background: radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%);
-        pointer-events: none;
-        z-index: 0;
-    }
-
-    .sk-footer,
-    .sk-bottombar {
-        display: none !important;
-    }
-
-    .sk-masthead {
-        background: rgba(6,6,14,0.92);
-        backdrop-filter: blur(14px);
-        border-bottom: 1px solid rgba(0,240,255,0.08);
-    }
-
-    .sk-masthead h1 {
-        font-family: 'Orbitron', sans-serif;
-        font-weight: 900;
-        background: linear-gradient(135deg, var(--cyan) 0%, var(--purple) 60%, var(--magenta) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-
-    .landing-hero {
-        text-align: center;
-        margin: 6rem 0;
-        position: relative;
-        z-index: 1;
-    }
-
-    .landing-hero h2 {
-        font-family: 'Orbitron', sans-serif;
-        font-weight: 700;
-        font-size: 1.6rem;
-        letter-spacing: 0.04em;
-        color: #e8eef4;
-        margin-bottom: 12px;
-    }
-
-    .landing-hero p {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.82rem;
-        color: #5a6a7a;
-        letter-spacing: 0.04em;
-        margin-bottom: 28px;
-    }
-
-    .neon-btn {
-        display: inline-block;
-        padding: 12px 32px;
-        font-family: 'Orbitron', sans-serif;
-        font-weight: 600;
-        font-size: 0.82rem;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        text-decoration: none;
-        color: var(--cyan);
-        background: rgba(0,240,255,0.06);
-        border: 1px solid rgba(0,240,255,0.3);
-        border-radius: 6px;
-        transition: all 0.3s;
-        position: relative;
-    }
-
-    .neon-btn:hover {
-        background: rgba(0,240,255,0.12);
-        border-color: var(--cyan);
-        box-shadow: 0 0 20px rgba(0,240,255,0.3), 0 0 60px rgba(0,240,255,0.08);
-        text-shadow: 0 0 12px rgba(0,240,255,0.5);
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after {
-            animation-duration: 0.01ms !important;
-            transition-duration: 0.01ms !important;
-        }
-    }
-</style>
+<link rel="stylesheet" href="{{ static_url('css/neon-base.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="landing-hero">
-    <h2>GitHub Actions Dashboard</h2>
-    <p>Monitor your CI/CD workflows in realtime.</p>
-    {% if user %}
-    <a href="/" class="neon-btn">Go to Dashboard</a>
-    {% else %}
-    <a href="/auth/login" class="neon-btn">Sign in to continue</a>
-    {% endif %}
+<div class="neon-page">
+    <a href="/" class="neon-brand">{{ site_name() }}</a>
+    <div class="landing-hero">
+        <h2>GitHub Actions Dashboard</h2>
+        <p>Monitor your CI/CD workflows in realtime.</p>
+        {% if user %}
+        <a href="/" class="neon-btn">Go to Dashboard</a>
+        {% else %}
+        <a href="/auth/login" class="neon-btn">Sign in to continue</a>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}
