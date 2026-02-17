@@ -135,7 +135,8 @@
                 // Don't navigate when clicking the toggle
                 if (e.target.closest(".monitor-toggle")) return;
                 var repo = item.dataset.repo;
-                navigateToRepo(repo);
+                var current = getCurrentRepo();
+                navigateToRepo(repo === current ? null : repo);
             });
         });
 
