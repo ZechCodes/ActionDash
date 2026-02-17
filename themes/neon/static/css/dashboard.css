@@ -4,6 +4,46 @@
    gradient text, and animated status indicators.
    ═══════════════════════════════════════════════════════════════ */
 
+/* ── 0. Cross-Document View Transitions ── */
+@view-transition {
+    navigation: auto;
+}
+
+/* Fade the page content */
+::view-transition-old(root) {
+    animation: vt-fade-out 0.15s ease-out;
+}
+
+::view-transition-new(root) {
+    animation: vt-fade-in 0.2s ease-in;
+}
+
+@keyframes vt-fade-out {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+
+@keyframes vt-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Freeze named elements in place during transitions */
+::view-transition-old(sidebar),
+::view-transition-new(sidebar),
+::view-transition-old(masthead),
+::view-transition-new(masthead),
+::view-transition-old(stat-active),
+::view-transition-new(stat-active),
+::view-transition-old(stat-success),
+::view-transition-new(stat-success),
+::view-transition-old(stat-failure),
+::view-transition-new(stat-failure),
+::view-transition-old(stat-rate),
+::view-transition-new(stat-rate) {
+    animation: none;
+}
+
 /* ── 1. Reset & Variables ── */
 *, *::before, *::after {
     margin: 0;
@@ -106,6 +146,7 @@ body::before {
     justify-content: space-between;
     padding: 0;
     margin: 0;
+    view-transition-name: masthead;
 }
 
 .dash-masthead-title {
@@ -149,6 +190,7 @@ body::before {
     top: 0;
     height: 100vh;
     overflow-y: auto;
+    view-transition-name: sidebar;
 }
 
 .dash-main {
@@ -454,6 +496,7 @@ body::before {
 /* Stat card per-type coloring */
 .stat-active {
     box-shadow: var(--glow-cyan);
+    view-transition-name: stat-active;
 }
 .stat-active::before {
     background: var(--cyan);
@@ -466,6 +509,7 @@ body::before {
 
 .stat-success {
     box-shadow: var(--glow-success);
+    view-transition-name: stat-success;
 }
 .stat-success::before {
     background: var(--success);
@@ -478,6 +522,7 @@ body::before {
 
 .stat-failure {
     box-shadow: var(--glow-magenta);
+    view-transition-name: stat-failure;
 }
 .stat-failure::before {
     background: var(--magenta);
@@ -490,6 +535,7 @@ body::before {
 
 .stat-rate {
     box-shadow: var(--glow-purple);
+    view-transition-name: stat-rate;
 }
 .stat-rate::before {
     background: var(--purple);
