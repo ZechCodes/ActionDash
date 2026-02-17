@@ -25,6 +25,8 @@ spec:
             - configMapRef:
                 name: actiondash-config
           env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
@@ -54,15 +56,15 @@ spec:
                   key: github-oauth-client-secret
           resources:
             requests:
-              memory: "128Mi"
+              memory: "256Mi"
               cpu: "50m"
             limits:
-              memory: "128Mi"
-              cpu: "100m"
+              memory: "256Mi"
+              cpu: "200m"
           livenessProbe:
             httpGet:
               path: /healthz
               port: 8081
-            initialDelaySeconds: 10
+            initialDelaySeconds: 30
             periodSeconds: 15
             failureThreshold: 3
