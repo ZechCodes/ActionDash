@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Page Not Found - {{ site_name() }}{% endblock %}
+
+{% block head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Chakra+Petch:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ static_url('css/neon-base.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="neon-page">
+    <a href="/" class="neon-brand">{{ site_name() }}</a>
+    <div class="neon-card">
+        <div class="error-code">404</div>
+        <h1 class="error-title">Page Not Found</h1>
+        <p class="error-message">The page you're looking for doesn't exist or has been moved.</p>
+        <div class="error-actions">
+            <a href="/" class="neon-btn">Return Home</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

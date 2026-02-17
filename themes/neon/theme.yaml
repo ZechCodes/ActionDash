@@ -1,0 +1,8 @@
+name: "Neon"
+description: "Cyberpunk neon dashboard theme"
+version: "1.0.0"
+author: "Zech Zimmerman"
+colors:
+  - "#06060e"
+  - "#00f0ff"
+  - "#8b5cf6"

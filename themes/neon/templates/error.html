@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Error {{ status_code }} - {{ site_name() }}{% endblock %}
+
+{% block head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Chakra+Petch:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ static_url('css/neon-base.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="neon-page">
+    <a href="/" class="neon-brand">{{ site_name() }}</a>
+    <div class="neon-card">
+        <div class="error-code">{{ status_code }}</div>
+        <p class="error-message">{{ message or "An unexpected error occurred." }}</p>
+
+        {% if hint %}
+        <details class="error-hint" open>
+            <summary>How to fix this</summary>
+            {{ hint }}
+        </details>
+        {% endif %}
+
+        <div class="error-actions">
+            <a href="/" class="neon-btn">Return Home</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
