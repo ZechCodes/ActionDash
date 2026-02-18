@@ -46,7 +46,7 @@ class WorkerAdminController(Controller):
         if not user_id:
             return Response(content={"error": "Not authenticated"}, status_code=401)
 
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=7)
 
         result = await db_session.execute(
             select(StoredNotification)
@@ -58,23 +58,38 @@ class WorkerAdminController(Controller):
                 StoredNotification.notified_at > cutoff,
             )
             .order_by(StoredNotification.notified_at.desc())
-            .limit(500)
+            .limit(5000)
         )
         rows = result.scalars().all()
 
-        events = []
+        # Collapse consecutive heartbeats into single entries
+        events: list[dict] = []
         for row in rows:
             try:
                 payload = json.loads(row.payload_json)
             except (json.JSONDecodeError, TypeError):
                 payload = {}
-            events.append({
+
+            event_type = payload.get("event", "unknown")
+
+            if (
+                event_type == "poll_heartbeat"
+                and events
+                and events[-1]["event"] == "poll_heartbeat"
+            ):
+                events[-1]["hb_count"] += 1
+                continue
+
+            entry = {
                 "id": str(row.id),
-                "event": payload.get("event", "unknown"),
+                "event": event_type,
                 "payload": payload,
                 "group": row.group_key,
                 "at": row.notified_at.isoformat(),
-            })
+            }
+            if event_type == "poll_heartbeat":
+                entry["hb_count"] = 1
+            events.append(entry)
 
         return Response(content={"events": events}, status_code=200)
 

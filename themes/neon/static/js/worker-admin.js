@@ -108,7 +108,7 @@
         return card;
     }
 
-    function addEventToFeed(event, payload, isoTime, prepend) {
+    function addEventToFeed(event, payload, isoTime, prepend, hbCount) {
         if (feedEmpty) {
             feedEmpty.remove();
             feedEmpty = null;
@@ -118,7 +118,8 @@
         if (event === "poll_heartbeat") {
             var adjacent = prepend ? feed.firstElementChild : feed.lastElementChild;
             if (adjacent && adjacent.getAttribute("data-event") === "poll_heartbeat") {
-                var count = parseInt(adjacent.getAttribute("data-hb-count") || "1", 10) + 1;
+                var prev = parseInt(adjacent.getAttribute("data-hb-count") || "1", 10);
+                var count = prev + (hbCount || 1);
                 adjacent.setAttribute("data-hb-count", count);
                 adjacent.querySelector(".event-label").textContent = "Heartbeat \u00D7" + count;
                 if (prepend) {
@@ -134,7 +135,11 @@
 
         var card = createEventCard(event, payload, isoTime);
         if (event === "poll_heartbeat") {
-            card.setAttribute("data-hb-count", "1");
+            var initCount = hbCount || 1;
+            card.setAttribute("data-hb-count", initCount);
+            if (initCount > 1) {
+                card.querySelector(".event-label").textContent = "Heartbeat \u00D7" + initCount;
+            }
         }
 
         if (prepend) {
@@ -218,7 +223,7 @@
             // Events come newest-first from API; render in that order
             for (var i = 0; i < events.length; i++) {
                 var ev = events[i];
-                addEventToFeed(ev.event, ev.payload, ev.at, false);
+                addEventToFeed(ev.event, ev.payload, ev.at, false, ev.hb_count || 0);
             }
 
             // Use the most recent heartbeat to set stats

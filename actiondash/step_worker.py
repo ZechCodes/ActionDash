@@ -103,8 +103,7 @@ async def _post_worker_event(
     if not user_ids:
         return
 
-    # Heartbeats replace in-place; other events accumulate
-    group = f"worker-{event}" if event == "poll_heartbeat" else None
+    group = None
 
     for uid in user_ids:
         try:
