@@ -69,6 +69,33 @@ async def upsert_workflow_run(session: AsyncSession, payload: dict) -> WorkflowR
     return run
 
 
+async def complete_stale_run(
+    session: AsyncSession, run_data: dict
+) -> WorkflowRun | None:
+    """Finalize a stuck run using raw GitHub API response data.
+
+    Unlike upsert_workflow_run (which expects a webhook payload shape),
+    this takes the direct /actions/runs/{id} API response.
+    Returns None if the run isn't completed or isn't in the DB.
+    """
+    if run_data.get("status") != "completed":
+        return None
+
+    run_id = run_data["id"]
+    result = await session.execute(
+        select(WorkflowRun).where(WorkflowRun.run_id == run_id)
+    )
+    run = result.scalar_one_or_none()
+    if run is None:
+        return None
+
+    run.status = run_data["status"]
+    run.conclusion = run_data.get("conclusion")
+    run.run_completed_at = _parse_gh_datetime(run_data.get("updated_at"))
+    await session.flush()
+    return run
+
+
 async def upsert_workflow_job(session: AsyncSession, payload: dict) -> WorkflowJob:
     """Create or update a workflow job from a webhook payload."""
     wf_job = payload["workflow_job"]

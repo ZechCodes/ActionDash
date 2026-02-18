@@ -18,7 +18,9 @@ from skrift.lib.notification_backends import RedisBackend
 from skrift.lib.notifications import NotificationMode, notify_user
 from skrift.lib.notifications import notifications
 
+from actiondash.github_client import GitHubClient
 from actiondash.models import WorkflowRun
+from actiondash.services import complete_stale_run
 from actiondash.step_poller import poll_loop
 
 logger = logging.getLogger(__name__)
@@ -62,6 +64,59 @@ def _make_store_fn(session_maker: async_sessionmaker):
                 await session.commit()
 
     return store
+
+
+def _make_completion_fn(session_maker: async_sessionmaker):
+    """Create a callback that recovers stuck runs detected by the poller."""
+
+    async def complete(repo_full_name: str, run_id: int, user_ids: list[str]) -> None:
+        from uuid import UUID
+        from actiondash.repo_services import get_user_github_token
+
+        async with session_maker() as session:
+            # Find a token for this repo
+            token = None
+            for uid_str in user_ids:
+                token = await get_user_github_token(session, UUID(uid_str))
+                if token:
+                    break
+
+            if not token:
+                logger.warning("Recovery: no token for repo %s, skipping run %d", repo_full_name, run_id)
+                return
+
+            # Confirm the run is actually completed on GitHub
+            client = GitHubClient(token)
+            run_data = await client.get_run(repo_full_name, run_id)
+
+            if run_data.get("status") != "completed":
+                logger.info("Recovery: run %d not yet completed on GitHub (status=%s)", run_id, run_data.get("status"))
+                return
+
+            # Finalize in DB
+            run = await complete_stale_run(session, run_data)
+            if run is None:
+                logger.info("Recovery: run %d not in DB or already completed", run_id)
+                return
+
+            await session.commit()
+            logger.info("Recovery: finalized run %d (conclusion=%s)", run_id, run.conclusion)
+
+            # Notify frontend — same shape as the webhook handler
+            for uid in user_ids:
+                try:
+                    await notify_user(
+                        uid,
+                        "workflow_run",
+                        group=f"run-{run.run_id}",
+                        mode=NotificationMode.TIMESERIES,
+                        action="completed",
+                        run=run.to_dict(),
+                    )
+                except Exception:
+                    logger.warning("Recovery: failed to notify user %s for run %d", uid, run.run_id)
+
+    return complete
 
 
 async def _health_server() -> None:
@@ -118,6 +173,7 @@ async def _run() -> None:
 
     publish_fn = _make_publish_fn()
     store_fn = _make_store_fn(session_maker)
+    completion_fn = _make_completion_fn(session_maker)
 
     # Mark as healthy immediately so the first poll cycle doesn't fail the probe
     global _last_poll_at
@@ -130,7 +186,7 @@ async def _run() -> None:
     health_task = asyncio.create_task(_health_server())
 
     try:
-        await poll_loop(session_maker, publish_fn, on_cycle=_mark_alive, store_fn=store_fn)
+        await poll_loop(session_maker, publish_fn, on_cycle=_mark_alive, store_fn=store_fn, completion_fn=completion_fn)
     finally:
         health_task.cancel()
         await backend.stop()

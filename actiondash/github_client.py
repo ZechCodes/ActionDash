@@ -72,6 +72,18 @@ class GitHubClient:
             resp.raise_for_status()
             return resp.json()
 
+    async def get_run(self, repo_full_name: str, run_id: int) -> dict:
+        """Fetch a single workflow run."""
+        owner, repo = repo_full_name.split("/", 1)
+        async with httpx.AsyncClient(
+            base_url=self.BASE_URL, headers=self._headers, timeout=15.0
+        ) as client:
+            resp = await client.get(
+                f"/repos/{owner}/{repo}/actions/runs/{run_id}"
+            )
+            resp.raise_for_status()
+            return resp.json()
+
     async def get_run_jobs(self, repo_full_name: str, run_id: int) -> list[dict]:
         """Fetch all jobs for a workflow run, including steps."""
         owner, repo = repo_full_name.split("/", 1)

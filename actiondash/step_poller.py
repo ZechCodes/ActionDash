@@ -24,8 +24,11 @@ _HEARTBEAT_EVERY = 12  # log heartbeat every 12 cycles (~60s)
 # Type aliases for callbacks
 PublishFn = Callable[..., Coroutine[Any, Any, None]]
 StoreFn = Callable[[int, dict], Coroutine[Any, Any, None]]
+CompletionFn = Callable[[str, int, list[str]], Coroutine[Any, Any, None]]
+# (repo_full_name, run_id, user_ids) -> None
 
 _step_cache: dict[int, dict] = {}  # run_id -> last step summary
+_completion_fired: dict[int, dict] = {}  # run_id -> summary at time of last fire
 
 
 def _extract_current_step(steps: list[dict]) -> str | None:
@@ -58,6 +61,13 @@ def _build_step_summary(jobs: list[dict]) -> dict:
     return summary
 
 
+def _all_jobs_completed(summary: dict) -> bool:
+    """Return True if every job in the summary has status 'completed'."""
+    if not summary:
+        return False
+    return all(job["status"] == "completed" for job in summary.values())
+
+
 async def _get_repo_context(
     session: AsyncSession, repo_full_name: str
 ) -> tuple[str | None, list[str]]:
@@ -85,7 +95,7 @@ async def _get_repo_context(
     return token, [str(uid) for uid in all_user_ids]
 
 
-async def _poll_once(session_maker: async_sessionmaker, publish_fn: PublishFn, store_fn: StoreFn | None = None) -> dict:
+async def _poll_once(session_maker: async_sessionmaker, publish_fn: PublishFn, store_fn: StoreFn | None = None, completion_fn: CompletionFn | None = None) -> dict:
     """Execute a single poll cycle. Returns stats dict for heartbeat."""
     stats = {"active": 0, "polled": 0, "broadcast": 0, "skipped_no_token": 0, "errors": 0}
     async with session_maker() as session:
@@ -166,6 +176,26 @@ async def _poll_once(session_maker: async_sessionmaker, publish_fn: PublishFn, s
                     run.run_id, len(summary),
                 )
 
+            # Detect stuck runs where all jobs are completed
+            if (
+                completion_fn
+                and _all_jobs_completed(summary)
+                and _completion_fired.get(run.run_id) != summary
+            ):
+                logger.info(
+                    "Step poller: all jobs completed for run %d, triggering recovery",
+                    run.run_id,
+                )
+                _completion_fired[run.run_id] = summary
+                try:
+                    await completion_fn(run.repo_full_name, run.run_id, user_ids)
+                except Exception:
+                    logger.warning(
+                        "Step poller: recovery callback failed for run %d, will retry",
+                        run.run_id, exc_info=True,
+                    )
+                    del _completion_fired[run.run_id]
+
         # Prune cache entries for runs no longer active, persisting final snapshot
         stale = set(_step_cache) - active_run_ids
         for run_id in stale:
@@ -179,6 +209,11 @@ async def _poll_once(session_maker: async_sessionmaker, publish_fn: PublishFn, s
                     )
             del _step_cache[run_id]
 
+        # Also clean up completion tracking for stale runs
+        stale_completions = set(_completion_fired) - active_run_ids
+        for run_id in stale_completions:
+            del _completion_fired[run_id]
+
     return stats
 
 
@@ -187,13 +222,14 @@ async def poll_loop(
     publish_fn: PublishFn,
     on_cycle: Callable[[], None] | None = None,
     store_fn: StoreFn | None = None,
+    completion_fn: CompletionFn | None = None,
 ) -> None:
     """Infinite polling loop with error recovery."""
     logger.info("Step progress poller started (interval=%ds)", POLL_INTERVAL)
     cycle = 0
     while True:
         try:
-            stats = await _poll_once(session_maker, publish_fn, store_fn=store_fn)
+            stats = await _poll_once(session_maker, publish_fn, store_fn=store_fn, completion_fn=completion_fn)
         except asyncio.CancelledError:
             raise
         except Exception:
