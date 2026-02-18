@@ -3,7 +3,7 @@
 {% block page_title %}Worker Admin{% endblock %}
 
 {% block extra_head %}
-<style>
+<style nonce="{{ csp_nonce() }}">
 /* ── Worker Admin ── */
 .worker-stats {
     display: grid;
@@ -218,6 +218,16 @@
     .worker-stat { padding: 14px 16px; }
     .worker-stat-value { font-size: 1.5rem; }
 }
+
+.worker-status-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+.worker-status-header .dash-section-title {
+    margin-bottom: 0;
+}
 </style>
 {% endblock %}
 
@@ -227,8 +237,8 @@
     <span>Worker Admin</span>
 </nav>
 
-<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-    <h2 class="dash-section-title" style="margin-bottom: 0;">Worker Status</h2>
+<div class="worker-status-header">
+    <h2 class="dash-section-title">Worker Status</h2>
     <div class="worker-health" id="worker-health">
         <span class="health-dot" id="health-dot"></span>
         <span id="health-label">Waiting for data&hellip;</span>
