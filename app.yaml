@@ -30,6 +30,7 @@ redis:
 
 notifications:
   backend: "skrift.lib.notification_backends:RedisBackend"
+  webhook_secret: "$NOTIFICATION_WEBHOOK_SECRET"
 
 rate_limit:
   enabled: true

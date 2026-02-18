@@ -8,3 +8,4 @@ metadata:
 data:
   AUTH_REDIRECT_BASE_URL: "https://actiondash.zech.sh"
   SESSION_COOKIE_DOMAIN: ".zech.sh"
+  NOTIFICATION_WEBHOOK_URL: "http://actiondash.zechcodes.svc.cluster.local:8080/notifications/webhook/"

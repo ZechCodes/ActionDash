@@ -1,22 +1,21 @@
 """Standalone step-progress worker process.
 
 Polls GitHub for step-level detail on active workflow runs and publishes
-updates to Redis for the Skrift notification system to fan out via SSE.
+updates via HTTP webhook to the main Skrift app for SSE fan-out.
 
 Run with: uv run python -m actiondash.step_worker
 """
 
 import asyncio
 import logging
+import os
 import time
 
+import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from skrift.config import get_settings
-from skrift.lib.notification_backends import RedisBackend
-from skrift.lib.notifications import NotificationMode, notify_user
-from skrift.lib.notifications import notifications
 
 from actiondash.github_client import GitHubClient
 from actiondash.models import WorkflowRun
@@ -27,9 +26,48 @@ logger = logging.getLogger(__name__)
 
 _last_poll_at: float = 0.0
 
+WEBHOOK_URL = os.environ.get(
+    "NOTIFICATION_WEBHOOK_URL", "http://localhost:8080/notifications/webhook/"
+)
+WEBHOOK_SECRET = os.environ.get("NOTIFICATION_WEBHOOK_SECRET", "")
 
-def _make_publish_fn():
-    """Create a publish callback that uses Skrift's notify_user API."""
+
+async def _post_notification(
+    client: httpx.AsyncClient,
+    *,
+    user_id: str,
+    type: str,
+    group: str | None = None,
+    **payload,
+) -> None:
+    """POST a single notification to the Skrift webhook endpoint."""
+    body = {
+        "target": "user",
+        "user_id": user_id,
+        "type": type,
+        "mode": "timeseries",
+        "payload": payload,
+    }
+    if group is not None:
+        body["group"] = group
+
+    resp = await client.post(
+        WEBHOOK_URL,
+        json=body,
+        headers={"Authorization": f"Bearer {WEBHOOK_SECRET}"},
+    )
+    if resp.status_code not in (200, 202):
+        logger.warning(
+            "Webhook returned %d for user %s type %s: %s",
+            resp.status_code,
+            user_id,
+            type,
+            resp.text,
+        )
+
+
+def _make_publish_fn(client: httpx.AsyncClient):
+    """Create a publish callback that POSTs to the notification webhook."""
 
     async def publish(type: str, *, group: str | None = None, user_ids: list[str] | None = None, **payload) -> None:
         if not user_ids:
@@ -37,13 +75,7 @@ def _make_publish_fn():
             return
         for uid in user_ids:
             try:
-                await notify_user(
-                    uid,
-                    type,
-                    group=group,
-                    mode=NotificationMode.TIMESERIES,
-                    **payload,
-                )
+                await _post_notification(client, user_id=uid, type=type, group=group, **payload)
             except Exception:
                 logger.warning("Failed to notify user %s for %s", uid, type, exc_info=True)
 
@@ -66,7 +98,7 @@ def _make_store_fn(session_maker: async_sessionmaker):
     return store
 
 
-def _make_completion_fn(session_maker: async_sessionmaker):
+def _make_completion_fn(session_maker: async_sessionmaker, client: httpx.AsyncClient):
     """Create a callback that recovers stuck runs detected by the poller."""
 
     async def complete(repo_full_name: str, run_id: int, user_ids: list[str]) -> None:
@@ -86,8 +118,8 @@ def _make_completion_fn(session_maker: async_sessionmaker):
                 return
 
             # Confirm the run is actually completed on GitHub
-            client = GitHubClient(token)
-            run_data = await client.get_run(repo_full_name, run_id)
+            gh = GitHubClient(token)
+            run_data = await gh.get_run(repo_full_name, run_id)
 
             if run_data.get("status") != "completed":
                 logger.info("Recovery: run %d not yet completed on GitHub (status=%s)", run_id, run_data.get("status"))
@@ -105,11 +137,11 @@ def _make_completion_fn(session_maker: async_sessionmaker):
             # Notify frontend — same shape as the webhook handler
             for uid in user_ids:
                 try:
-                    await notify_user(
-                        uid,
-                        "workflow_run",
+                    await _post_notification(
+                        client,
+                        user_id=uid,
+                        type="workflow_run",
                         group=f"run-{run.run_id}",
-                        mode=NotificationMode.TIMESERIES,
                         action="completed",
                         run=run.to_dict(),
                     )
@@ -166,31 +198,28 @@ async def _run() -> None:
     engine = create_async_engine(settings.db.url, pool_size=2, max_overflow=0)
     session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
-    backend = RedisBackend(settings=settings, session_maker=session_maker)
-    notifications.set_backend(backend)
-    await backend.start()
-    logger.info("Skrift RedisBackend started for step worker")
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        logger.info("Step worker using notification webhook at %s", WEBHOOK_URL)
 
-    publish_fn = _make_publish_fn()
-    store_fn = _make_store_fn(session_maker)
-    completion_fn = _make_completion_fn(session_maker)
+        publish_fn = _make_publish_fn(client)
+        store_fn = _make_store_fn(session_maker)
+        completion_fn = _make_completion_fn(session_maker, client)
 
-    # Mark as healthy immediately so the first poll cycle doesn't fail the probe
-    global _last_poll_at
-    _last_poll_at = time.monotonic()
-
-    def _mark_alive():
+        # Mark as healthy immediately so the first poll cycle doesn't fail the probe
         global _last_poll_at
         _last_poll_at = time.monotonic()
 
-    health_task = asyncio.create_task(_health_server())
+        def _mark_alive():
+            global _last_poll_at
+            _last_poll_at = time.monotonic()
 
-    try:
-        await poll_loop(session_maker, publish_fn, on_cycle=_mark_alive, store_fn=store_fn, completion_fn=completion_fn)
-    finally:
-        health_task.cancel()
-        await backend.stop()
-        await engine.dispose()
+        health_task = asyncio.create_task(_health_server())
+
+        try:
+            await poll_loop(session_maker, publish_fn, on_cycle=_mark_alive, store_fn=store_fn, completion_fn=completion_fn)
+        finally:
+            health_task.cancel()
+            await engine.dispose()
 
 
 def main() -> None:
