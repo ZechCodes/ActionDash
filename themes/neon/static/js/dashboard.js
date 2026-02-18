@@ -178,8 +178,8 @@
             badgeEl.remove();
         }
 
-        // Remove step progress when run completes
-        if (run.status === "completed") {
+        // Remove step progress when run completes successfully (keep on failure)
+        if (run.status === "completed" && run.conclusion !== "failure") {
             var stepEl = card.querySelector(".run-step-progress");
             if (stepEl) stepEl.remove();
         }
@@ -221,20 +221,32 @@
         if (!card) return;
 
         // Find first in-progress job with a current step
-        var activeJob = null;
+        var displayJob = null;
+        var isFailed = false;
         var jobIds = Object.keys(jobs);
         for (var i = 0; i < jobIds.length; i++) {
             var job = jobs[jobIds[i]];
             if (job.status === "in_progress" && job.current_step) {
-                activeJob = job;
+                displayJob = job;
                 break;
+            }
+        }
+
+        // Fall back to first failed job with a current step
+        if (!displayJob) {
+            for (var i = 0; i < jobIds.length; i++) {
+                var job = jobs[jobIds[i]];
+                if (job.conclusion === "failure" && job.current_step) {
+                    displayJob = job;
+                    isFailed = true;
+                    break;
+                }
             }
         }
 
         var el = card.querySelector(".run-step-progress");
 
-        if (!activeJob) {
-            // No active step — remove element if present
+        if (!displayJob) {
             if (el) el.remove();
             return;
         }
@@ -246,10 +258,12 @@
             if (runInfo) runInfo.appendChild(el);
         }
 
+        var indicatorClass = isFailed ? "step-indicator-failed" : "step-indicator";
+        el.className = isFailed ? "run-step-progress step-failed" : "run-step-progress";
         el.innerHTML =
-            '<span class="step-indicator"></span>' +
-            '<span class="step-name">' + escapeHtml(activeJob.current_step) + '</span>' +
-            '<span class="step-count">' + activeJob.completed_steps + '/' + activeJob.total_steps + '</span>';
+            '<span class="' + indicatorClass + '"></span>' +
+            '<span class="step-name">' + escapeHtml(displayJob.current_step) + '</span>' +
+            '<span class="step-count">' + displayJob.completed_steps + '/' + displayJob.total_steps + '</span>';
     }
 
     function reclassifyRun(card, run) {
@@ -276,6 +290,9 @@
         card.className = `run-card run-${run.conclusion || run.status}`;
         card.dataset.runId = run.run_id;
         card.id = `run-${run.run_id}`;
+        if (run.step_summary) {
+            card.dataset.stepSummary = JSON.stringify(run.step_summary);
+        }
 
         let statusIcon;
         if (run.status === "completed") {
@@ -400,6 +417,16 @@
             els[i].textContent = formatTimeAgo(started);
         }
     }
+
+    // Hydrate step progress from server-rendered data attributes
+    document.querySelectorAll("[data-step-summary]").forEach(function(card) {
+        try {
+            var summary = JSON.parse(card.dataset.stepSummary);
+            updateStepProgress(parseInt(card.dataset.runId), summary);
+        } catch (e) {
+            // Ignore parse errors
+        }
+    });
 
     // Run immediately and then every second
     updateActorTimes();

@@ -23,6 +23,7 @@ from actiondash.services import (
     upsert_workflow_job,
     upsert_workflow_run,
 )
+from actiondash.step_poller import _build_step_summary
 from actiondash.webhook import verify_signature
 
 log = logging.getLogger(__name__)
@@ -516,6 +517,14 @@ class WebhookController(Controller):
             await db_session.commit()
 
             repo_name = payload["repository"]["full_name"]
+            run_id = payload["workflow_job"].get("run_id")
+
+            # Prepopulate step_summary on the WorkflowRun
+            if run_id and action in ("in_progress", "completed"):
+                await self._update_step_summary(
+                    db_session, payload, action, repo_name, run_id
+                )
+
             user_ids = await get_monitoring_user_ids(db_session, repo_name)
             for uid in user_ids:
                 try:
@@ -536,3 +545,60 @@ class WebhookController(Controller):
 
         # Ignore other event types
         return Response(content={"ok": True, "ignored": event_type}, status_code=200)
+
+    async def _update_step_summary(
+        self,
+        db_session: AsyncSession,
+        payload: dict,
+        action: str,
+        repo_name: str,
+        run_id: int,
+    ) -> None:
+        """Persist step progress on the WorkflowRun when a job starts or completes."""
+        from sqlalchemy import select
+        from actiondash.github_client import GitHubClient
+        from actiondash.repo_services import get_user_github_token
+        from actiondash.models import MonitoredRepo
+
+        try:
+            if action == "in_progress":
+                # Fetch steps from API — the in_progress webhook doesn't include them
+                result = await db_session.execute(
+                    select(MonitoredRepo.user_id).where(
+                        MonitoredRepo.repo_full_name == repo_name
+                    )
+                )
+                user_ids = result.scalars().all()
+                token = None
+                for uid in user_ids:
+                    token = await get_user_github_token(db_session, uid)
+                    if token:
+                        break
+                if not token:
+                    return
+
+                client = GitHubClient(token)
+                jobs = await client.get_run_jobs(repo_name, run_id)
+                summary = _build_step_summary(jobs)
+
+            else:
+                # action == "completed" — extract steps from webhook payload
+                wf_job = payload["workflow_job"]
+                summary = _build_step_summary([wf_job])
+
+            # Merge into existing step_summary on the run
+            result = await db_session.execute(
+                select(WorkflowRun).where(WorkflowRun.run_id == run_id)
+            )
+            run = result.scalar_one_or_none()
+            if run:
+                existing = run.step_summary or {}
+                existing.update(summary)
+                run.step_summary = existing
+                await db_session.commit()
+
+        except Exception:
+            log.warning(
+                "Failed to update step_summary for run %d (%s)",
+                run_id, action, exc_info=True,
+            )

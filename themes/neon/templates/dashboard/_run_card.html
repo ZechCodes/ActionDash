@@ -1,4 +1,4 @@
-<article class="run-card run-{{ run.conclusion or run.status }}" data-run-id="{{ run.run_id }}" id="run-{{ run.run_id }}">
+<article class="run-card run-{{ run.conclusion or run.status }}" data-run-id="{{ run.run_id }}" id="run-{{ run.run_id }}"{% if run.step_summary %} data-step-summary='{{ run.step_summary | tojson }}'{% endif %}>
     <!-- Col 1: Status icon -->
     <div class="run-status-indicator">
         {% if run.status == 'completed' %}

@@ -21,8 +21,9 @@ logger = logging.getLogger(__name__)
 POLL_INTERVAL = 5  # seconds
 _HEARTBEAT_EVERY = 12  # log heartbeat every 12 cycles (~60s)
 
-# Type alias for the publish callback
+# Type aliases for callbacks
 PublishFn = Callable[..., Coroutine[Any, Any, None]]
+StoreFn = Callable[[int, dict], Coroutine[Any, Any, None]]
 
 _step_cache: dict[int, dict] = {}  # run_id -> last step summary
 
@@ -49,6 +50,7 @@ def _build_step_summary(jobs: list[dict]) -> dict:
         summary[job["id"]] = {
             "name": job.get("name", "Unknown"),
             "status": job.get("status", "unknown"),
+            "conclusion": job.get("conclusion"),
             "current_step": current_step,
             "total_steps": len(steps),
             "completed_steps": completed,
@@ -83,7 +85,7 @@ async def _get_repo_context(
     return token, [str(uid) for uid in all_user_ids]
 
 
-async def _poll_once(session_maker: async_sessionmaker, publish_fn: PublishFn) -> dict:
+async def _poll_once(session_maker: async_sessionmaker, publish_fn: PublishFn, store_fn: StoreFn | None = None) -> dict:
     """Execute a single poll cycle. Returns stats dict for heartbeat."""
     stats = {"active": 0, "polled": 0, "broadcast": 0, "skipped_no_token": 0, "errors": 0}
     async with session_maker() as session:
@@ -134,6 +136,14 @@ async def _poll_once(session_maker: async_sessionmaker, publish_fn: PublishFn) -
 
             if summary != prev:
                 _step_cache[run.run_id] = summary
+                if store_fn:
+                    try:
+                        await store_fn(run.run_id, summary)
+                    except Exception:
+                        logger.warning(
+                            "Step poller: failed to store step_summary for run %d",
+                            run.run_id, exc_info=True,
+                        )
                 try:
                     await publish_fn(
                         "step_progress",
@@ -156,9 +166,17 @@ async def _poll_once(session_maker: async_sessionmaker, publish_fn: PublishFn) -
                     run.run_id, len(summary),
                 )
 
-        # Prune cache entries for runs no longer active
+        # Prune cache entries for runs no longer active, persisting final snapshot
         stale = set(_step_cache) - active_run_ids
         for run_id in stale:
+            if store_fn:
+                try:
+                    await store_fn(run_id, _step_cache[run_id])
+                except Exception:
+                    logger.warning(
+                        "Step poller: failed to store final snapshot for run %d",
+                        run_id, exc_info=True,
+                    )
             del _step_cache[run_id]
 
     return stats
@@ -168,13 +186,14 @@ async def poll_loop(
     session_maker: async_sessionmaker,
     publish_fn: PublishFn,
     on_cycle: Callable[[], None] | None = None,
+    store_fn: StoreFn | None = None,
 ) -> None:
     """Infinite polling loop with error recovery."""
     logger.info("Step progress poller started (interval=%ds)", POLL_INTERVAL)
     cycle = 0
     while True:
         try:
-            stats = await _poll_once(session_maker, publish_fn)
+            stats = await _poll_once(session_maker, publish_fn, store_fn=store_fn)
         except asyncio.CancelledError:
             raise
         except Exception:

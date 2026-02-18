@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
-from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, Index, String, Text, DateTime, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, Index, JSON, String, Text, DateTime, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from skrift.db.base import Base
@@ -49,6 +49,7 @@ class WorkflowRun(Base):
     actor_avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     run_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     run_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    step_summary: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     __table_args__ = (
         Index("ix_workflow_runs_repo_status", "repo_full_name", "status"),
@@ -73,6 +74,7 @@ class WorkflowRun(Base):
             "actor_avatar_url": self.actor_avatar_url,
             "run_started_at": self.run_started_at.isoformat() if self.run_started_at else None,
             "run_completed_at": self.run_completed_at.isoformat() if self.run_completed_at else None,
+            "step_summary": self.step_summary,
         }
 
 

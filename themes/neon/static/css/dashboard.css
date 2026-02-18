@@ -778,6 +778,19 @@ body::before {
     flex-shrink: 0;
 }
 
+.run-step-progress.step-failed {
+    color: var(--magenta);
+}
+
+.step-indicator-failed {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--magenta);
+    box-shadow: 0 0 6px var(--magenta);
+    flex-shrink: 0;
+}
+
 .meta-icon {
     font-size: 0.72rem;
     opacity: 0.6;
