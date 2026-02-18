@@ -18,6 +18,13 @@
     <aside class="dash-sidebar" id="sidebar">
         <div class="sidebar-header">
             <h3 class="sidebar-title">Repositories</h3>
+            {% if user and user.roles | selectattr("name", "equalto", "admin") | list %}
+            <a href="/admin/worker/" class="sidebar-settings-link" title="Worker Admin">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M5 0a.5.5 0 0 1 .5.5V2h5V.5a.5.5 0 0 1 1 0V2h1a2 2 0 0 1 2 2v1H1.5V4a2 2 0 0 1 2-2h1V.5A.5.5 0 0 1 5 0zM1.5 6v7a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V6h-13zM8 8a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/>
+                </svg>
+            </a>
+            {% endif %}
             <a href="/settings" class="sidebar-settings-link" title="Settings">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>

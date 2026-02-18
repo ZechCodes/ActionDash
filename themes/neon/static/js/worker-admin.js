@@ -76,6 +76,7 @@
 
         var card = document.createElement("div");
         card.className = "event-card";
+        card.setAttribute("data-event", event);
 
         var icon = document.createElement("div");
         icon.className = "event-icon " + cfg.cls;
@@ -113,7 +114,28 @@
             feedEmpty = null;
         }
 
+        // Group consecutive heartbeats into a single card
+        if (event === "poll_heartbeat") {
+            var adjacent = prepend ? feed.firstChild : feed.lastChild;
+            if (adjacent && adjacent.getAttribute("data-event") === "poll_heartbeat") {
+                var count = parseInt(adjacent.getAttribute("data-hb-count") || "1", 10) + 1;
+                adjacent.setAttribute("data-hb-count", count);
+                adjacent.querySelector(".event-label").textContent = "Heartbeat \u00D7" + count;
+                if (prepend) {
+                    // Live event is newer — update detail and timestamp
+                    adjacent.querySelector(".event-detail").textContent = buildDetail(event, payload);
+                    var ts = adjacent.querySelector(".event-time");
+                    ts.setAttribute("data-iso", isoTime);
+                    ts.textContent = formatTimeAgo(isoTime);
+                }
+                return;
+            }
+        }
+
         var card = createEventCard(event, payload, isoTime);
+        if (event === "poll_heartbeat") {
+            card.setAttribute("data-hb-count", "1");
+        }
 
         if (prepend) {
             feed.insertBefore(card, feed.firstChild);
@@ -226,7 +248,7 @@
         for (var i = 0; i < times.length; i++) {
             times[i].textContent = formatTimeAgo(times[i].getAttribute("data-iso"));
         }
-    }, 15000);
+    }, 1000);
 
     // Start stale detection
     resetStaleTimer();
