@@ -116,7 +116,7 @@
 
         // Group consecutive heartbeats into a single card
         if (event === "poll_heartbeat") {
-            var adjacent = prepend ? feed.firstChild : feed.lastChild;
+            var adjacent = prepend ? feed.firstElementChild : feed.lastElementChild;
             if (adjacent && adjacent.getAttribute("data-event") === "poll_heartbeat") {
                 var count = parseInt(adjacent.getAttribute("data-hb-count") || "1", 10) + 1;
                 adjacent.setAttribute("data-hb-count", count);
