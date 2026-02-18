@@ -5,78 +5,151 @@
 {% block extra_head %}
 <style nonce="{{ csp_nonce() }}">
 /* ── Worker Admin ── */
-.worker-stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-}
 
-.worker-stat {
+/* Uptime chart */
+.uptime-chart-card {
     background: var(--card-bg);
     border: 1px solid var(--card-border);
-    border-radius: 10px;
-    padding: 18px 20px;
-    text-align: left;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.uptime-header {
     display: flex;
-    flex-direction: column-reverse;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
 }
 
-.worker-stat::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    border-radius: 10px 10px 0 0;
+.uptime-summary {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
 }
 
-.worker-stat:hover {
-    transform: translateY(-2px);
-}
-
-.worker-stat-value {
-    display: block;
+.uptime-pct {
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: 1.8rem;
-    letter-spacing: 0.02em;
+    font-size: 2rem;
+    color: var(--success);
+    text-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
     line-height: 1;
 }
 
-.worker-stat-label {
+.uptime-pct.poor {
+    color: var(--failure);
+    text-shadow: 0 0 20px rgba(255, 51, 102, 0.4);
+}
+
+.uptime-label {
     font-family: var(--font-mono);
-    font-size: 0.66rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     color: var(--text-dim);
-    margin-bottom: 8px;
 }
 
-.ws-active {
-    box-shadow: var(--glow-cyan);
+.uptime-bar {
+    display: flex;
+    height: 40px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.3);
+    cursor: crosshair;
+    position: relative;
 }
-.ws-active::before { background: var(--cyan); box-shadow: 0 0 20px var(--cyan); }
-.ws-active .worker-stat-value { color: var(--cyan); text-shadow: 0 0 20px rgba(0,240,255,0.4); }
 
-.ws-polled {
-    box-shadow: var(--glow-purple);
+.uptime-bar-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
 }
-.ws-polled::before { background: var(--purple); box-shadow: 0 0 20px var(--purple); }
-.ws-polled .worker-stat-value { color: var(--purple); text-shadow: 0 0 20px rgba(139,92,246,0.4); }
 
-.ws-broadcasts {
-    box-shadow: var(--glow-success);
+.uptime-seg {
+    flex: 1;
+    min-width: 0;
 }
-.ws-broadcasts::before { background: var(--success); box-shadow: 0 0 20px var(--success); }
-.ws-broadcasts .worker-stat-value { color: var(--success); text-shadow: 0 0 20px rgba(0,255,136,0.4); }
 
-.ws-errors {
-    box-shadow: var(--glow-magenta);
+.uptime-seg.up {
+    background: var(--success);
+    opacity: 0.7;
 }
-.ws-errors::before { background: var(--magenta); box-shadow: 0 0 20px var(--magenta); }
-.ws-errors .worker-stat-value { color: var(--magenta); text-shadow: 0 0 20px rgba(255,0,170,0.4); }
+
+.uptime-seg.error {
+    background: var(--failure);
+    opacity: 0.85;
+}
+
+.uptime-seg.unknown {
+    background: rgba(90, 106, 122, 0.15);
+}
+
+.uptime-cursor {
+    position: absolute;
+    top: -2px;
+    bottom: -2px;
+    width: 2px;
+    background: rgba(200, 214, 229, 0.6);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.1s;
+    z-index: 2;
+    box-shadow: 0 0 6px rgba(200, 214, 229, 0.3);
+}
+
+.uptime-bar:hover .uptime-cursor {
+    opacity: 1;
+}
+
+.uptime-times {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+}
+
+.uptime-tooltip {
+    position: fixed;
+    background: rgba(6, 6, 14, 0.95);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--text);
+    pointer-events: none;
+    z-index: 1000;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.15s;
+    backdrop-filter: blur(8px);
+}
+
+.uptime-tooltip.visible {
+    opacity: 1;
+}
+
+.tt-time {
+    color: var(--text-dim);
+    margin-bottom: 4px;
+}
+
+.tt-status {
+    font-weight: 600;
+}
+
+.tt-status.up { color: var(--success); }
+.tt-status.error { color: var(--failure); }
+.tt-status.unknown { color: var(--text-dim); }
 
 /* Health indicator */
 .worker-health {
@@ -193,14 +266,11 @@
     font-family: var(--font-mono);
 }
 
-@media (max-width: 900px) {
-    .worker-stats { grid-template-columns: repeat(2, 1fr); }
-}
-
 @media (max-width: 640px) {
-    .worker-stats { grid-template-columns: repeat(2, 1fr); }
-    .worker-stat { padding: 14px 16px; }
-    .worker-stat-value { font-size: 1.5rem; }
+    .uptime-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .uptime-chart-card { padding: 16px; }
+    .uptime-pct { font-size: 1.5rem; }
+    .uptime-bar { height: 32px; }
 }
 
 .worker-status-header {
@@ -223,30 +293,31 @@
 
 <div class="worker-status-header">
     <h2 class="dash-section-title">Worker Status</h2>
-    <div class="worker-health" id="worker-health">
-        <span class="health-dot" id="health-dot"></span>
-        <span id="health-label">Waiting for data&hellip;</span>
-    </div>
 </div>
 
-<div class="worker-stats" id="worker-stats">
-    <div class="worker-stat ws-active">
-        <span class="worker-stat-value" id="stat-active">&mdash;</span>
-        <span class="worker-stat-label">Active Runs</span>
+<div class="uptime-chart-card" id="uptime-chart-card">
+    <div class="uptime-header">
+        <div class="uptime-summary">
+            <span class="uptime-pct" id="uptime-pct">&mdash;</span>
+            <span class="uptime-label">uptime past 24h</span>
+        </div>
+        <div class="worker-health" id="worker-health">
+            <span class="health-dot" id="health-dot"></span>
+            <span id="health-label">Waiting for data&hellip;</span>
+        </div>
     </div>
-    <div class="worker-stat ws-polled">
-        <span class="worker-stat-value" id="stat-polled">&mdash;</span>
-        <span class="worker-stat-label">Polled</span>
+    <div class="uptime-bar" id="uptime-bar">
+        <div class="uptime-bar-loading">Loading uptime data&hellip;</div>
     </div>
-    <div class="worker-stat ws-broadcasts">
-        <span class="worker-stat-value" id="stat-broadcasts">&mdash;</span>
-        <span class="worker-stat-label">Broadcasts</span>
-    </div>
-    <div class="worker-stat ws-errors">
-        <span class="worker-stat-value" id="stat-errors">&mdash;</span>
-        <span class="worker-stat-label">Errors</span>
+    <div class="uptime-times">
+        <span>24h ago</span>
+        <span>18h ago</span>
+        <span>12h ago</span>
+        <span>6h ago</span>
+        <span>Now</span>
     </div>
 </div>
+<div class="uptime-tooltip" id="uptime-tooltip"></div>
 
 <section class="dash-section">
     <h2 class="dash-section-title">

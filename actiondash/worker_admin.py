@@ -38,6 +38,67 @@ class WorkerAdminController(Controller):
             },
         )
 
+    @get("/uptime")
+    async def worker_uptime(
+        self, request: Request, db_session: AsyncSession
+    ) -> Response:
+        """Return 24h uptime data in 5-minute buckets."""
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return Response(content={"error": "Not authenticated"}, status_code=401)
+
+        now = datetime.now(timezone.utc)
+        cutoff = now - timedelta(hours=24)
+        bucket_minutes = 5
+        num_buckets = 24 * 60 // bucket_minutes
+
+        result = await db_session.execute(
+            select(
+                StoredNotification.notified_at,
+                StoredNotification.payload_json,
+            )
+            .where(
+                StoredNotification.scope == "user",
+                StoredNotification.scope_id == user_id,
+                StoredNotification.type == "worker_activity",
+                StoredNotification.delivery_mode == "timeseries",
+                StoredNotification.notified_at > cutoff,
+            )
+        )
+        rows = result.all()
+
+        buckets = ["unknown"] * num_buckets
+        for notified_at, payload_json in rows:
+            try:
+                payload = json.loads(payload_json)
+            except (json.JSONDecodeError, TypeError):
+                continue
+
+            event = payload.get("event", "unknown")
+            elapsed = (notified_at - cutoff).total_seconds()
+            idx = int(elapsed / (bucket_minutes * 60))
+            if idx < 0 or idx >= num_buckets:
+                continue
+
+            if event == "poll_heartbeat":
+                buckets[idx] = "up"
+            elif event == "poll_error" and buckets[idx] != "up":
+                buckets[idx] = "error"
+
+        known = [b for b in buckets if b != "unknown"]
+        up_count = sum(1 for b in known if b == "up")
+        uptime_pct = round(up_count / len(known) * 100, 1) if known else None
+
+        return Response(
+            content={
+                "buckets": buckets,
+                "bucket_minutes": bucket_minutes,
+                "start": cutoff.isoformat(),
+                "uptime_pct": uptime_pct,
+            },
+            status_code=200,
+        )
+
     @get("/events")
     async def worker_events(
         self, request: Request, db_session: AsyncSession

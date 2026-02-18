@@ -1,8 +1,9 @@
 /**
- * Worker Admin — realtime activity feed and stats.
+ * Worker Admin — realtime activity feed and 24h uptime chart.
  *
- * Hydrates from /admin/worker/events on load, then listens for
- * sk:notification events of type "worker_activity" for live updates.
+ * Hydrates from /admin/worker/events and /admin/worker/uptime on load,
+ * then listens for sk:notification events of type "worker_activity"
+ * for live updates.
  */
 (function () {
     "use strict";
@@ -13,16 +14,23 @@
     var healthDot = document.getElementById("health-dot");
     var healthLabel = document.getElementById("health-label");
 
-    var statActive = document.getElementById("stat-active");
-    var statPolled = document.getElementById("stat-polled");
-    var statBroadcasts = document.getElementById("stat-broadcasts");
-    var statErrors = document.getElementById("stat-errors");
+    var uptimeBar = document.getElementById("uptime-bar");
+    var uptimePctEl = document.getElementById("uptime-pct");
+    var uptimeTooltip = document.getElementById("uptime-tooltip");
 
     var MAX_FEED_ITEMS = 200;
     var STALE_THRESHOLD_MS = 90 * 1000;
+    var BUCKET_MINUTES = 5;
+    var NUM_BUCKETS = 24 * 60 / BUCKET_MINUTES;
+    var REFRESH_INTERVAL_MS = BUCKET_MINUTES * 60 * 1000;
     var lastHeartbeatAt = 0;
     var staleTimer = null;
     var eventCount = 0;
+
+    // ── Uptime chart state ──
+
+    var currentBuckets = [];
+    var chartStartTime = null;
 
     // ── Event rendering ──
 
@@ -43,6 +51,12 @@
         var h = Math.floor(m / 60);
         if (h < 24) return h + "h ago";
         return Math.floor(h / 24) + "d ago";
+    }
+
+    function pad2(n) { return n < 10 ? "0" + n : "" + n; }
+
+    function formatLocalTime(date) {
+        return pad2(date.getHours()) + ":" + pad2(date.getMinutes());
     }
 
     function buildDetail(event, payload) {
@@ -157,15 +171,123 @@
         feedCount.textContent = eventCount;
     }
 
-    // ── Stats from heartbeat ──
+    // ── Uptime chart ──
 
-    function updateStats(payload) {
-        var stats = payload.stats || {};
-        statActive.textContent = stats.active != null ? stats.active : "\u2014";
-        statPolled.textContent = stats.polled != null ? stats.polled : "\u2014";
-        statBroadcasts.textContent = stats.broadcast != null ? stats.broadcast : "\u2014";
-        statErrors.textContent = stats.errors != null ? stats.errors : "\u2014";
+    function renderUptimeChart(buckets, startIso) {
+        currentBuckets = buckets;
+        chartStartTime = new Date(startIso);
+
+        var cursor = document.createElement("div");
+        cursor.className = "uptime-cursor";
+        cursor.id = "uptime-cursor";
+
+        var html = "";
+        for (var i = 0; i < buckets.length; i++) {
+            html += '<div class="uptime-seg ' + buckets[i] + '"></div>';
+        }
+        uptimeBar.innerHTML = html;
+        uptimeBar.appendChild(cursor);
+
+        updateUptimePct();
     }
+
+    function updateUptimePct() {
+        var known = 0;
+        var up = 0;
+        for (var i = 0; i < currentBuckets.length; i++) {
+            if (currentBuckets[i] !== "unknown") {
+                known++;
+                if (currentBuckets[i] === "up") up++;
+            }
+        }
+        if (known > 0) {
+            var pct = (up / known * 100).toFixed(1);
+            uptimePctEl.textContent = pct + "%";
+            uptimePctEl.className = "uptime-pct" + (parseFloat(pct) < 95 ? " poor" : "");
+        } else {
+            uptimePctEl.textContent = "\u2014";
+            uptimePctEl.className = "uptime-pct";
+        }
+    }
+
+    function updateChartSegment(idx, status) {
+        if (idx < 0 || idx >= currentBuckets.length) return;
+        if (status === "up") {
+            currentBuckets[idx] = "up";
+        } else if (status === "error" && currentBuckets[idx] !== "up") {
+            currentBuckets[idx] = "error";
+        } else {
+            return;
+        }
+
+        var segs = uptimeBar.querySelectorAll(".uptime-seg");
+        if (segs[idx]) {
+            segs[idx].className = "uptime-seg " + currentBuckets[idx];
+        }
+        updateUptimePct();
+    }
+
+    function getBucketIndex(isoTime) {
+        if (!chartStartTime) return -1;
+        var elapsed = (new Date(isoTime).getTime() - chartStartTime.getTime()) / 1000;
+        var idx = Math.floor(elapsed / (BUCKET_MINUTES * 60));
+        if (idx < 0 || idx >= NUM_BUCKETS) return -1;
+        return idx;
+    }
+
+    function fetchUptime() {
+        fetch("/admin/worker/uptime")
+            .then(function (resp) { return resp.json(); })
+            .then(function (data) {
+                renderUptimeChart(data.buckets || [], data.start);
+            })
+            .catch(function (err) {
+                console.warn("Failed to load uptime data:", err);
+            });
+    }
+
+    // ── Uptime tooltip ──
+
+    uptimeBar.addEventListener("mousemove", function (e) {
+        if (!currentBuckets.length || !chartStartTime) return;
+
+        var rect = uptimeBar.getBoundingClientRect();
+        var x = e.clientX - rect.left;
+        var idx = Math.min(
+            Math.floor(x / rect.width * currentBuckets.length),
+            currentBuckets.length - 1
+        );
+        if (idx < 0) idx = 0;
+
+        // Position cursor
+        var cursor = document.getElementById("uptime-cursor");
+        if (cursor) cursor.style.left = x + "px";
+
+        // Compute bucket time range
+        var bucketStart = new Date(chartStartTime.getTime() + idx * BUCKET_MINUTES * 60000);
+        var bucketEnd = new Date(bucketStart.getTime() + BUCKET_MINUTES * 60000);
+        var timeStr = formatLocalTime(bucketStart) + " \u2013 " + formatLocalTime(bucketEnd);
+
+        var status = currentBuckets[idx];
+        var statusLabel = status === "up" ? "Operational" : status === "error" ? "Error" : "No Data";
+
+        uptimeTooltip.innerHTML =
+            '<div class="tt-time">' + timeStr + '</div>' +
+            '<div class="tt-status ' + status + '">\u25CF ' + statusLabel + '</div>';
+
+        // Position tooltip, keeping it within viewport
+        var tx = e.clientX + 14;
+        var ty = e.clientY - 50;
+        if (tx + 160 > window.innerWidth) tx = e.clientX - 170;
+        if (ty < 4) ty = e.clientY + 14;
+        uptimeTooltip.style.left = tx + "px";
+        uptimeTooltip.style.top = ty + "px";
+        uptimeTooltip.classList.add("visible");
+    });
+
+    uptimeBar.addEventListener("mouseleave", function () {
+        uptimeTooltip.classList.remove("visible");
+    });
 
     // ── Health tracking ──
 
@@ -194,8 +316,12 @@
         addEventToFeed(event, payload, isoTime, true);
 
         if (event === "poll_heartbeat") {
-            updateStats(payload);
             markHealthy();
+            var idx = getBucketIndex(isoTime);
+            if (idx >= 0) updateChartSegment(idx, "up");
+        } else if (event === "poll_error") {
+            var errIdx = getBucketIndex(isoTime);
+            if (errIdx >= 0) updateChartSegment(errIdx, "error");
         } else if (event === "worker_started") {
             markHealthy();
         }
@@ -214,6 +340,8 @@
 
     // ── Hydrate from API ──
 
+    fetchUptime();
+
     fetch("/admin/worker/events")
         .then(function (resp) { return resp.json(); })
         .then(function (data) {
@@ -226,10 +354,9 @@
                 addEventToFeed(ev.event, ev.payload, ev.at, false, ev.hb_count || 0);
             }
 
-            // Use the most recent heartbeat to set stats
+            // Use the most recent heartbeat to set health status
             for (var j = 0; j < events.length; j++) {
                 if (events[j].event === "poll_heartbeat") {
-                    updateStats(events[j].payload);
                     // Check if it's recent enough to mark healthy
                     var age = Date.now() - new Date(events[j].at).getTime();
                     if (age < STALE_THRESHOLD_MS) {
@@ -254,6 +381,10 @@
             times[i].textContent = formatTimeAgo(times[i].getAttribute("data-iso"));
         }
     }, 1000);
+
+    // ── Refresh uptime chart periodically ──
+
+    setInterval(fetchUptime, REFRESH_INTERVAL_MS);
 
     // Start stale detection
     resetStaleTimer();
