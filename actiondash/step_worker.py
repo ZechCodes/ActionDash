@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from skrift.config import get_settings
 
 from actiondash.github_client import GitHubClient
-from actiondash.models import WorkflowRun
+from actiondash.models import MonitoredRepo, WorkflowRun
 from actiondash.services import complete_stale_run
 from actiondash.step_poller import poll_loop
 
@@ -82,6 +82,44 @@ def _make_publish_fn(client: httpx.AsyncClient):
     return publish
 
 
+async def _get_all_user_ids(session_maker: async_sessionmaker) -> list[str]:
+    """Query all distinct user IDs that have at least one monitored repo."""
+    async with session_maker() as session:
+        result = await session.execute(
+            select(MonitoredRepo.user_id).distinct()
+        )
+        return [str(uid) for uid in result.scalars().all()]
+
+
+async def _post_worker_event(
+    client: httpx.AsyncClient,
+    session_maker: async_sessionmaker,
+    *,
+    event: str,
+    **data,
+) -> None:
+    """Send a worker_activity notification to all users with monitored repos."""
+    user_ids = await _get_all_user_ids(session_maker)
+    if not user_ids:
+        return
+
+    # Heartbeats replace in-place; other events accumulate
+    group = f"worker-{event}" if event == "poll_heartbeat" else None
+
+    for uid in user_ids:
+        try:
+            await _post_notification(
+                client,
+                user_id=uid,
+                type="worker_activity",
+                group=group,
+                event=event,
+                **data,
+            )
+        except Exception:
+            logger.warning("Failed to send worker event %s to user %s", event, uid)
+
+
 def _make_store_fn(session_maker: async_sessionmaker):
     """Create a store callback that persists step_summary to the DB."""
 
@@ -98,7 +136,11 @@ def _make_store_fn(session_maker: async_sessionmaker):
     return store
 
 
-def _make_completion_fn(session_maker: async_sessionmaker, client: httpx.AsyncClient):
+def _make_completion_fn(
+    session_maker: async_sessionmaker,
+    client: httpx.AsyncClient,
+    worker_event_fn=None,
+):
     """Create a callback that recovers stuck runs detected by the poller."""
 
     async def complete(repo_full_name: str, run_id: int, user_ids: list[str]) -> None:
@@ -147,6 +189,18 @@ def _make_completion_fn(session_maker: async_sessionmaker, client: httpx.AsyncCl
                     )
                 except Exception:
                     logger.warning("Recovery: failed to notify user %s for run %d", uid, run.run_id)
+
+            # Emit worker admin event
+            if worker_event_fn:
+                try:
+                    await worker_event_fn(
+                        "recovery_completed",
+                        run_id=run_id,
+                        repo=repo_full_name,
+                        conclusion=run.conclusion,
+                    )
+                except Exception:
+                    pass
 
     return complete
 
@@ -201,9 +255,18 @@ async def _run() -> None:
     async with httpx.AsyncClient(timeout=10.0) as client:
         logger.info("Step worker using notification webhook at %s", WEBHOOK_URL)
 
+        async def worker_event_fn(event: str, **data) -> None:
+            await _post_worker_event(client, session_maker, event=event, **data)
+
         publish_fn = _make_publish_fn(client)
         store_fn = _make_store_fn(session_maker)
-        completion_fn = _make_completion_fn(session_maker, client)
+        completion_fn = _make_completion_fn(session_maker, client, worker_event_fn=worker_event_fn)
+
+        # Emit startup event
+        try:
+            await worker_event_fn("worker_started", webhook_url=WEBHOOK_URL)
+        except Exception:
+            logger.warning("Failed to emit worker_started event")
 
         # Mark as healthy immediately so the first poll cycle doesn't fail the probe
         global _last_poll_at
@@ -216,7 +279,14 @@ async def _run() -> None:
         health_task = asyncio.create_task(_health_server())
 
         try:
-            await poll_loop(session_maker, publish_fn, on_cycle=_mark_alive, store_fn=store_fn, completion_fn=completion_fn)
+            await poll_loop(
+                session_maker,
+                publish_fn,
+                on_cycle=_mark_alive,
+                store_fn=store_fn,
+                completion_fn=completion_fn,
+                worker_event_fn=worker_event_fn,
+            )
         finally:
             health_task.cancel()
             await engine.dispose()

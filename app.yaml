@@ -50,3 +50,4 @@ controllers:
   - actiondash.controllers:SettingsController
   - actiondash.controllers:HealthController
   - actiondash.controllers:WebhookController
+  - actiondash.worker_admin:WorkerAdminController

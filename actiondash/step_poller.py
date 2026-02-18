@@ -26,6 +26,8 @@ PublishFn = Callable[..., Coroutine[Any, Any, None]]
 StoreFn = Callable[[int, dict], Coroutine[Any, Any, None]]
 CompletionFn = Callable[[str, int, list[str]], Coroutine[Any, Any, None]]
 # (repo_full_name, run_id, user_ids) -> None
+WorkerEventFn = Callable[..., Coroutine[Any, Any, None]]
+# (event, **data) -> None
 
 _step_cache: dict[int, dict] = {}  # run_id -> last step summary
 _completion_fired: dict[int, dict] = {}  # run_id -> summary at time of last fire
@@ -223,6 +225,7 @@ async def poll_loop(
     on_cycle: Callable[[], None] | None = None,
     store_fn: StoreFn | None = None,
     completion_fn: CompletionFn | None = None,
+    worker_event_fn: WorkerEventFn | None = None,
 ) -> None:
     """Infinite polling loop with error recovery."""
     logger.info("Step progress poller started (interval=%ds)", POLL_INTERVAL)
@@ -235,6 +238,11 @@ async def poll_loop(
         except Exception:
             logger.warning("Step poller error, will retry", exc_info=True)
             stats = None
+            if worker_event_fn:
+                try:
+                    await worker_event_fn("poll_error", message="Unhandled poll loop error, will retry")
+                except Exception:
+                    pass
 
         if on_cycle is not None:
             on_cycle()
@@ -246,5 +254,15 @@ async def poll_loop(
                 "Step poller heartbeat: cycle=%d, cached_runs=%d, last=%s",
                 cycle, cached, stats,
             )
+            if worker_event_fn:
+                try:
+                    await worker_event_fn(
+                        "poll_heartbeat",
+                        cycle=cycle,
+                        cached_runs=cached,
+                        stats=stats or {},
+                    )
+                except Exception:
+                    pass
 
         await asyncio.sleep(POLL_INTERVAL)

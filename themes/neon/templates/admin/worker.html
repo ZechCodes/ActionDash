@@ -1,0 +1,270 @@
+{% extends "dashboard/base_with_sidebar.html" %}
+
+{% block page_title %}Worker Admin{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Worker Admin ── */
+.worker-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.worker-stat {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+.worker-stat::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    border-radius: 10px 10px 0 0;
+}
+
+.worker-stat:hover {
+    transform: translateY(-2px);
+}
+
+.worker-stat-value {
+    display: block;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.8rem;
+    letter-spacing: 0.02em;
+    line-height: 1;
+}
+
+.worker-stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+}
+
+.ws-active {
+    box-shadow: var(--glow-cyan);
+}
+.ws-active::before { background: var(--cyan); box-shadow: 0 0 20px var(--cyan); }
+.ws-active .worker-stat-value { color: var(--cyan); text-shadow: 0 0 20px rgba(0,240,255,0.4); }
+
+.ws-polled {
+    box-shadow: var(--glow-purple);
+}
+.ws-polled::before { background: var(--purple); box-shadow: 0 0 20px var(--purple); }
+.ws-polled .worker-stat-value { color: var(--purple); text-shadow: 0 0 20px rgba(139,92,246,0.4); }
+
+.ws-broadcasts {
+    box-shadow: var(--glow-success);
+}
+.ws-broadcasts::before { background: var(--success); box-shadow: 0 0 20px var(--success); }
+.ws-broadcasts .worker-stat-value { color: var(--success); text-shadow: 0 0 20px rgba(0,255,136,0.4); }
+
+.ws-errors {
+    box-shadow: var(--glow-magenta);
+}
+.ws-errors::before { background: var(--magenta); box-shadow: 0 0 20px var(--magenta); }
+.ws-errors .worker-stat-value { color: var(--magenta); text-shadow: 0 0 20px rgba(255,0,170,0.4); }
+
+/* Health indicator */
+.worker-health {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--text-dim);
+}
+
+.health-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    transition: all 0.3s;
+}
+
+.health-dot.healthy {
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.health-dot.stale {
+    background: var(--failure);
+    box-shadow: 0 0 8px var(--failure);
+}
+
+/* Activity feed */
+.activity-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.activity-feed::-webkit-scrollbar {
+    width: 4px;
+}
+
+.activity-feed::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.activity-feed::-webkit-scrollbar-thumb {
+    background: rgba(0, 240, 255, 0.15);
+    border-radius: 2px;
+}
+
+.event-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    animation: card-enter 0.3s ease-out both;
+}
+
+.event-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.event-icon.ev-heartbeat {
+    background: rgba(0, 240, 255, 0.08);
+    color: var(--cyan);
+}
+
+.event-icon.ev-started {
+    background: rgba(0, 255, 136, 0.08);
+    color: var(--success);
+}
+
+.event-icon.ev-recovery {
+    background: rgba(139, 92, 246, 0.08);
+    color: var(--purple);
+}
+
+.event-icon.ev-error {
+    background: rgba(255, 51, 102, 0.08);
+    color: var(--failure);
+}
+
+.event-body {
+    min-width: 0;
+}
+
+.event-label {
+    font-weight: 500;
+    font-size: 0.85rem;
+    color: var(--text);
+}
+
+.event-detail {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.event-time {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.feed-empty {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--text-dim);
+    font-size: 0.82rem;
+    font-family: var(--font-mono);
+}
+
+@media (max-width: 900px) {
+    .worker-stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+    .worker-stats { grid-template-columns: repeat(2, 1fr); }
+    .worker-stat { padding: 14px 16px; }
+    .worker-stat-value { font-size: 1.5rem; }
+}
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<nav class="dash-breadcrumb">
+    <a href="/">Dashboard</a> &rsaquo;
+    <span>Worker Admin</span>
+</nav>
+
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+    <h2 class="dash-section-title" style="margin-bottom: 0;">Worker Status</h2>
+    <div class="worker-health" id="worker-health">
+        <span class="health-dot" id="health-dot"></span>
+        <span id="health-label">Waiting for data&hellip;</span>
+    </div>
+</div>
+
+<div class="worker-stats" id="worker-stats">
+    <div class="worker-stat ws-active">
+        <span class="worker-stat-value" id="stat-active">&mdash;</span>
+        <span class="worker-stat-label">Active Runs</span>
+    </div>
+    <div class="worker-stat ws-polled">
+        <span class="worker-stat-value" id="stat-polled">&mdash;</span>
+        <span class="worker-stat-label">Polled</span>
+    </div>
+    <div class="worker-stat ws-broadcasts">
+        <span class="worker-stat-value" id="stat-broadcasts">&mdash;</span>
+        <span class="worker-stat-label">Broadcasts</span>
+    </div>
+    <div class="worker-stat ws-errors">
+        <span class="worker-stat-value" id="stat-errors">&mdash;</span>
+        <span class="worker-stat-label">Errors</span>
+    </div>
+</div>
+
+<section class="dash-section">
+    <h2 class="dash-section-title">
+        Activity Feed
+        <span class="section-count" id="feed-count">0</span>
+    </h2>
+    <div class="activity-feed" id="activity-feed">
+        <div class="feed-empty" id="feed-empty">No worker events yet. Waiting for heartbeat&hellip;</div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ theme_url('js/worker-admin.js') }}"></script>
+{% endblock %}
