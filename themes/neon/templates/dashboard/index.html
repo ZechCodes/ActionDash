@@ -2,12 +2,6 @@
 
 {% block page_title %}{% if current_repo %}{{ current_repo }}{% else %}Dashboard{% endif %}{% endblock %}
 
-{% block extra_head %}
-<script nonce="{{ csp_nonce() }}">
-window.__dailyRuns = {{ daily_runs | tojson }};
-</script>
-{% endblock %}
-
 {% block dashboard_content %}
 <section class="daily-chart-card" id="daily-chart-card">
     <div class="daily-chart-header">

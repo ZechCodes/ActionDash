@@ -50,7 +50,6 @@ class DashboardController(Controller):
         recent_runs = await get_recent_runs(
             db_session, limit=30, repo_full_name=repo
         )
-        daily_runs = await get_daily_run_counts(db_session, repo_full_name=repo)
         user = await self._get_user(request, db_session)
         has_github = await self._has_github_token(db_session, user) if user else False
 
@@ -60,7 +59,6 @@ class DashboardController(Controller):
                 "stats": stats,
                 "active_runs": active_runs,
                 "recent_runs": recent_runs,
-                "daily_runs": daily_runs,
                 "user": user,
                 "current_repo": repo,
                 "has_github": has_github,
