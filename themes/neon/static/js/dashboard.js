@@ -340,7 +340,6 @@
                     ${actorName}
                     <div class="actor-time" data-started="${escapeHtml(startedAt)}">${formatTimeAgo(startedAt)}</div>
                 </div>
-                <a href="${escapeHtml(run.html_url)}" target="_blank" rel="noopener" class="run-link" title="View on GitHub"></a>
             </div>
         `;
 
