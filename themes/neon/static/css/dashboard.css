@@ -522,6 +522,7 @@ body::before {
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
+    height: 100%;
 }
 
 .daily-bar-success {
