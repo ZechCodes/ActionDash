@@ -386,7 +386,7 @@
             if (total > maxTotal) maxTotal = total;
         }
 
-        var html = "";
+        dailyChart.innerHTML = "";
         for (var i = 0; i < data.length; i++) {
             var total = data[i].success + data[i].failure;
             var successPx = maxTotal > 0 ? Math.max(Math.round(data[i].success / maxTotal * barHeight), 2) : 0;
@@ -394,20 +394,28 @@
             if (data[i].success === 0) successPx = 0;
             if (data[i].failure === 0) failurePx = 0;
 
-            html += '<div class="daily-bar" data-idx="' + i + '">';
+            var bar = document.createElement("div");
+            bar.className = "daily-bar";
+            bar.setAttribute("data-idx", i);
             if (failurePx > 0) {
-                html += '<div class="daily-bar-failure" style="height:' + failurePx + 'px"></div>';
+                var fail = document.createElement("div");
+                fail.className = "daily-bar-failure";
+                fail.style.height = failurePx + "px";
+                bar.appendChild(fail);
             }
             if (successPx > 0) {
-                html += '<div class="daily-bar-success" style="height:' + successPx + 'px"></div>';
+                var success = document.createElement("div");
+                success.className = "daily-bar-success";
+                success.style.height = successPx + "px";
+                bar.appendChild(success);
             }
             if (total === 0) {
-                html += '<div class="daily-bar-empty"></div>';
+                var empty = document.createElement("div");
+                empty.className = "daily-bar-empty";
+                bar.appendChild(empty);
             }
-            html += '</div>';
+            dailyChart.appendChild(bar);
         }
-
-        dailyChart.innerHTML = html;
     }
 
     // Tooltip interaction
