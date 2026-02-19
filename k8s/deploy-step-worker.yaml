@@ -30,7 +30,7 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: actiondash-secrets
+                  name: zech-sh-db
                   key: database-url
             - name: SECRET_KEY
               valueFrom:

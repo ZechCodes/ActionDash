@@ -8,5 +8,5 @@ dependencies = [
     "asyncpg",
     "httpx",
     "redis>=5.0",
-    "skrift>=0.1.0a37",
+    "skrift>=0.1.0a38",
 ]

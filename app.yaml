@@ -1,5 +1,6 @@
 db:
   url: "$DATABASE_URL"
+  schema: actiondash
 
 models:
   - actiondash.models
