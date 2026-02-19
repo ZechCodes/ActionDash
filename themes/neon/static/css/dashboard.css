@@ -542,6 +542,12 @@ body::before {
     transition: opacity 0.15s;
 }
 
+.daily-bar-empty {
+    background: rgba(90, 106, 122, 0.15);
+    height: 2px;
+    border-radius: 2px;
+}
+
 .daily-bar:hover .daily-bar-success {
     opacity: 0.9;
 }

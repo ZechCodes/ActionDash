@@ -370,7 +370,7 @@
 
     var dailyChart = document.getElementById("daily-chart");
     var dailyTooltip = document.getElementById("daily-chart-tooltip");
-    var dailyData = window.__dailyRuns || [];
+    var dailyData = [];
 
     function renderDailyChart(data) {
         dailyData = data;
@@ -384,6 +384,7 @@
 
         var html = "";
         for (var i = 0; i < data.length; i++) {
+            var total = data[i].success + data[i].failure;
             var successPct = maxTotal > 0 ? (data[i].success / maxTotal * 100) : 0;
             var failurePct = maxTotal > 0 ? (data[i].failure / maxTotal * 100) : 0;
 
@@ -394,14 +395,14 @@
             if (data[i].success > 0) {
                 html += '<div class="daily-bar-success" style="height:' + successPct + '%"></div>';
             }
+            if (total === 0) {
+                html += '<div class="daily-bar-empty"></div>';
+            }
             html += '</div>';
         }
 
         dailyChart.innerHTML = html;
     }
-
-    // Render initial chart from server data
-    renderDailyChart(dailyData);
 
     // Tooltip interaction
     if (dailyChart) {
@@ -451,6 +452,9 @@
             })
             .catch(function () {}); // Silently fail
     }
+
+    // Fetch chart data on page load
+    refreshDailyChart();
 
     function escapeHtml(str) {
         if (!str) return "";
