@@ -376,6 +376,10 @@
         dailyData = data;
         if (!dailyChart) return;
 
+        // Use the actual rendered height minus padding (8px top + 8px bottom)
+        var barHeight = dailyChart.clientHeight - 16;
+        if (barHeight < 10) barHeight = 104; // fallback
+
         var maxTotal = 0;
         for (var i = 0; i < data.length; i++) {
             var total = data[i].success + data[i].failure;
@@ -385,15 +389,17 @@
         var html = "";
         for (var i = 0; i < data.length; i++) {
             var total = data[i].success + data[i].failure;
-            var successPct = maxTotal > 0 ? (data[i].success / maxTotal * 100) : 0;
-            var failurePct = maxTotal > 0 ? (data[i].failure / maxTotal * 100) : 0;
+            var successPx = maxTotal > 0 ? Math.max(Math.round(data[i].success / maxTotal * barHeight), 2) : 0;
+            var failurePx = maxTotal > 0 ? Math.max(Math.round(data[i].failure / maxTotal * barHeight), 2) : 0;
+            if (data[i].success === 0) successPx = 0;
+            if (data[i].failure === 0) failurePx = 0;
 
             html += '<div class="daily-bar" data-idx="' + i + '">';
-            if (data[i].failure > 0) {
-                html += '<div class="daily-bar-failure" style="height:' + failurePct + '%"></div>';
+            if (failurePx > 0) {
+                html += '<div class="daily-bar-failure" style="height:' + failurePx + 'px"></div>';
             }
-            if (data[i].success > 0) {
-                html += '<div class="daily-bar-success" style="height:' + successPct + '%"></div>';
+            if (successPx > 0) {
+                html += '<div class="daily-bar-success" style="height:' + successPx + 'px"></div>';
             }
             if (total === 0) {
                 html += '<div class="daily-bar-empty"></div>';
