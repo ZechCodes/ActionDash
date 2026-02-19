@@ -1,8 +1,8 @@
 """Data access layer for workflow runs and jobs."""
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from actiondash.models import MonitoredRepo, WorkflowRun, WorkflowJob
@@ -195,3 +195,57 @@ async def get_run_stats(
             round(len(succeeded) / len(completed) * 100) if completed else 0
         ),
     }
+
+
+async def get_daily_run_counts(
+    session: AsyncSession,
+    *,
+    days: int = 28,
+    repo_full_name: str | None = None,
+) -> list[dict]:
+    """Get daily success/failure counts for the last N days."""
+    now = datetime.now(timezone.utc)
+    cutoff = (now - timedelta(days=days)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+
+    date_col = func.date(WorkflowRun.updated_at)
+
+    query = (
+        select(
+            date_col.label("day"),
+            func.count(
+                case((WorkflowRun.conclusion == "success", 1))
+            ).label("success"),
+            func.count(
+                case((WorkflowRun.conclusion == "failure", 1))
+            ).label("failure"),
+        )
+        .where(
+            WorkflowRun.status == "completed",
+            WorkflowRun.updated_at >= cutoff,
+        )
+        .group_by(date_col)
+        .order_by(date_col)
+    )
+    if repo_full_name:
+        query = query.where(WorkflowRun.repo_full_name == repo_full_name)
+
+    result = await session.execute(query)
+    rows = {
+        str(row.day): {"success": row.success, "failure": row.failure}
+        for row in result.all()
+    }
+
+    daily = []
+    for i in range(days):
+        d = (now - timedelta(days=days - 1 - i)).date()
+        day_str = d.isoformat()
+        entry = rows.get(day_str, {"success": 0, "failure": 0})
+        daily.append({
+            "date": day_str,
+            "success": entry["success"],
+            "failure": entry["failure"],
+        })
+
+    return daily

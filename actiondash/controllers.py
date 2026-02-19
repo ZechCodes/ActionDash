@@ -16,6 +16,7 @@ from skrift.lib.notifications import notify_user, NotificationMode
 from actiondash.models import WorkflowRun
 from actiondash.services import (
     get_active_runs,
+    get_daily_run_counts,
     get_jobs_for_run,
     get_monitoring_user_ids,
     get_recent_runs,
@@ -49,6 +50,7 @@ class DashboardController(Controller):
         recent_runs = await get_recent_runs(
             db_session, limit=30, repo_full_name=repo
         )
+        daily_runs = await get_daily_run_counts(db_session, repo_full_name=repo)
         user = await self._get_user(request, db_session)
         has_github = await self._has_github_token(db_session, user) if user else False
 
@@ -58,6 +60,7 @@ class DashboardController(Controller):
                 "stats": stats,
                 "active_runs": active_runs,
                 "recent_runs": recent_runs,
+                "daily_runs": daily_runs,
                 "user": user,
                 "current_repo": repo,
                 "has_github": has_github,
@@ -126,6 +129,15 @@ class DashboardController(Controller):
         repo = request.query_params.get("repo")
         stats = await get_run_stats(db_session, repo_full_name=repo)
         return Response(content=stats, status_code=200)
+
+    @get("/api/daily-runs", guards=[auth_guard])
+    async def api_daily_runs(
+        self, request: Request, db_session: AsyncSession
+    ) -> Response:
+        """JSON API: daily run counts for 28-day bar chart."""
+        repo = request.query_params.get("repo")
+        daily = await get_daily_run_counts(db_session, repo_full_name=repo)
+        return Response(content={"days": daily}, status_code=200)
 
     async def _get_user(self, request: Request, db_session: AsyncSession):
         from sqlalchemy import select

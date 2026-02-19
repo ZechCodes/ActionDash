@@ -2,25 +2,31 @@
 
 {% block page_title %}{% if current_repo %}{{ current_repo }}{% else %}Dashboard{% endif %}{% endblock %}
 
+{% block extra_head %}
+<script nonce="{{ csp_nonce() }}">
+window.__dailyRuns = {{ daily_runs | tojson }};
+</script>
+{% endblock %}
+
 {% block dashboard_content %}
-<section class="dash-stats" id="stats-bar">
-    <div class="stat-card stat-active">
-        <span class="stat-value" id="stat-active">{{ stats.active_count }}</span>
-        <span class="stat-label">Active</span>
+<section class="daily-chart-card" id="daily-chart-card">
+    <div class="daily-chart-header">
+        <span class="daily-chart-title">28-Day Activity</span>
+        <div class="daily-chart-legend">
+            <span class="legend-item legend-success">Completed</span>
+            <span class="legend-item legend-failure">Failed</span>
+        </div>
     </div>
-    <div class="stat-card stat-success">
-        <span class="stat-value" id="stat-success">{{ stats.success_count }}</span>
-        <span class="stat-label">Succeeded</span>
-    </div>
-    <div class="stat-card stat-failure">
-        <span class="stat-value" id="stat-failure">{{ stats.failure_count }}</span>
-        <span class="stat-label">Failed</span>
-    </div>
-    <div class="stat-card stat-rate">
-        <span class="stat-value" id="stat-rate">{{ stats.success_rate }}%</span>
-        <span class="stat-label">Success Rate</span>
+    <div class="daily-chart" id="daily-chart"></div>
+    <div class="daily-chart-times">
+        <span>28d ago</span>
+        <span>21d ago</span>
+        <span>14d ago</span>
+        <span>7d ago</span>
+        <span>Today</span>
     </div>
 </section>
+<div class="daily-chart-tooltip" id="daily-chart-tooltip"></div>
 
 {% if active_runs %}
 <section class="dash-section">

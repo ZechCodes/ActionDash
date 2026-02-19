@@ -104,8 +104,8 @@
             if (emptyState) emptyState.remove();
         }
 
-        // Update stats
-        refreshStats();
+        // Update daily chart
+        refreshDailyChart();
     }
 
     function updateWorkflowJob(job, action) {
@@ -358,31 +358,98 @@
 
         // Insert before the recent runs section
         const content = document.querySelector(".dash-main") || document.querySelector(".sk-content");
-        const statsBar = document.getElementById("stats-bar");
-        if (statsBar && statsBar.nextElementSibling) {
-            content.insertBefore(section, statsBar.nextElementSibling);
+        const chartCard = document.getElementById("daily-chart-card");
+        if (chartCard && chartCard.nextElementSibling) {
+            content.insertBefore(section, chartCard.nextElementSibling);
         } else if (content) {
             content.appendChild(section);
         }
     }
 
-    function refreshStats() {
-        var url = "/api/stats";
-        if (currentRepo) url += "?repo=" + encodeURIComponent(currentRepo);
-        fetch(url, { credentials: "same-origin" })
-            .then((r) => r.json())
-            .then((stats) => {
-                setTextIfExists("stat-active", stats.active_count);
-                setTextIfExists("stat-success", stats.success_count);
-                setTextIfExists("stat-failure", stats.failure_count);
-                setTextIfExists("stat-rate", stats.success_rate + "%");
-            })
-            .catch(() => {}); // Silently fail
+    // ── Daily activity chart ──
+
+    var dailyChart = document.getElementById("daily-chart");
+    var dailyTooltip = document.getElementById("daily-chart-tooltip");
+    var dailyData = window.__dailyRuns || [];
+
+    function renderDailyChart(data) {
+        dailyData = data;
+        if (!dailyChart) return;
+
+        var maxTotal = 0;
+        for (var i = 0; i < data.length; i++) {
+            var total = data[i].success + data[i].failure;
+            if (total > maxTotal) maxTotal = total;
+        }
+
+        var html = "";
+        for (var i = 0; i < data.length; i++) {
+            var successPct = maxTotal > 0 ? (data[i].success / maxTotal * 100) : 0;
+            var failurePct = maxTotal > 0 ? (data[i].failure / maxTotal * 100) : 0;
+
+            html += '<div class="daily-bar" data-idx="' + i + '">';
+            if (data[i].failure > 0) {
+                html += '<div class="daily-bar-failure" style="height:' + failurePct + '%"></div>';
+            }
+            if (data[i].success > 0) {
+                html += '<div class="daily-bar-success" style="height:' + successPct + '%"></div>';
+            }
+            html += '</div>';
+        }
+
+        dailyChart.innerHTML = html;
     }
 
-    function setTextIfExists(id, value) {
-        const el = document.getElementById(id);
-        if (el) el.textContent = value;
+    // Render initial chart from server data
+    renderDailyChart(dailyData);
+
+    // Tooltip interaction
+    if (dailyChart) {
+        dailyChart.addEventListener("mousemove", function (e) {
+            if (!dailyData.length) return;
+
+            var rect = dailyChart.getBoundingClientRect();
+            var x = e.clientX - rect.left;
+            var idx = Math.min(
+                Math.floor(x / rect.width * dailyData.length),
+                dailyData.length - 1
+            );
+            if (idx < 0) idx = 0;
+
+            var day = dailyData[idx];
+            var dateObj = new Date(day.date + "T00:00:00");
+            var dateStr = dateObj.toLocaleDateString(undefined, {
+                weekday: "short", month: "short", day: "numeric"
+            });
+
+            dailyTooltip.innerHTML =
+                '<div class="tt-date">' + escapeHtml(dateStr) + '</div>' +
+                '<div class="tt-success">\u25CF ' + day.success + ' completed</div>' +
+                '<div class="tt-failure">\u25CF ' + day.failure + ' failed</div>';
+
+            var tx = e.clientX + 14;
+            var ty = e.clientY - 60;
+            if (tx + 180 > window.innerWidth) tx = e.clientX - 190;
+            if (ty < 4) ty = e.clientY + 14;
+            dailyTooltip.style.left = tx + "px";
+            dailyTooltip.style.top = ty + "px";
+            dailyTooltip.classList.add("visible");
+        });
+
+        dailyChart.addEventListener("mouseleave", function () {
+            dailyTooltip.classList.remove("visible");
+        });
+    }
+
+    function refreshDailyChart() {
+        var url = "/api/daily-runs";
+        if (currentRepo) url += "?repo=" + encodeURIComponent(currentRepo);
+        fetch(url, { credentials: "same-origin" })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                renderDailyChart(data.days || []);
+            })
+            .catch(function () {}); // Silently fail
     }
 
     function escapeHtml(str) {

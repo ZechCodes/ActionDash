@@ -32,15 +32,7 @@
 ::view-transition-old(sidebar),
 ::view-transition-new(sidebar),
 ::view-transition-old(masthead),
-::view-transition-new(masthead),
-::view-transition-old(stat-active),
-::view-transition-new(stat-active),
-::view-transition-old(stat-success),
-::view-transition-new(stat-success),
-::view-transition-old(stat-failure),
-::view-transition-new(stat-failure),
-::view-transition-old(stat-rate),
-::view-transition-new(stat-rate) {
+::view-transition-new(masthead) {
     animation: none;
 }
 
@@ -459,109 +451,147 @@ body::before {
 }
 
 
-/* ── 6. Stats Bar ── */
-.dash-stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-}
-
-.stat-card {
+/* ── 6. Daily Activity Chart ── */
+.daily-chart-card {
     background: var(--card-bg);
     border: 1px solid var(--card-border);
-    border-radius: 10px;
-    padding: 18px 20px;
-    text-align: left;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s;
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.daily-chart-header {
     display: flex;
-    flex-direction: column-reverse;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
 }
 
-.stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    border-radius: 10px 10px 0 0;
-}
-
-.stat-card:hover {
-    transform: translateY(-2px);
-}
-
-/* Stat card per-type coloring */
-.stat-active {
-    box-shadow: var(--glow-cyan);
-    view-transition-name: stat-active;
-}
-.stat-active::before {
-    background: var(--cyan);
-    box-shadow: 0 0 20px var(--cyan);
-}
-.stat-active .stat-value {
-    color: var(--cyan);
-    text-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
-}
-
-.stat-success {
-    box-shadow: var(--glow-success);
-    view-transition-name: stat-success;
-}
-.stat-success::before {
-    background: var(--success);
-    box-shadow: 0 0 20px var(--success);
-}
-.stat-success .stat-value {
-    color: var(--success);
-    text-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
-}
-
-.stat-failure {
-    box-shadow: var(--glow-magenta);
-    view-transition-name: stat-failure;
-}
-.stat-failure::before {
-    background: var(--magenta);
-    box-shadow: 0 0 20px var(--magenta);
-}
-.stat-failure .stat-value {
-    color: var(--magenta);
-    text-shadow: 0 0 20px rgba(255, 0, 170, 0.4);
-}
-
-.stat-rate {
-    box-shadow: var(--glow-purple);
-    view-transition-name: stat-rate;
-}
-.stat-rate::before {
-    background: var(--purple);
-    box-shadow: 0 0 20px var(--purple);
-}
-.stat-rate .stat-value {
-    color: var(--purple);
-    text-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
-}
-
-.stat-value {
-    display: block;
+.daily-chart-title {
     font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 1.8rem;
-    letter-spacing: 0.02em;
-    line-height: 1;
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text);
 }
 
-.stat-label {
+.daily-chart-legend {
+    display: flex;
+    align-items: center;
+    gap: 16px;
     font-family: var(--font-mono);
-    font-size: 0.66rem;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
+    font-size: 0.62rem;
+    letter-spacing: 0.05em;
     color: var(--text-dim);
-    margin-bottom: 8px;
+}
+
+.legend-item::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.legend-success::before {
+    background: var(--success);
+    opacity: 0.7;
+}
+
+.legend-failure::before {
+    background: var(--failure);
+    opacity: 0.85;
+}
+
+.daily-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 120px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    padding: 8px 6px;
+    cursor: crosshair;
+    position: relative;
+}
+
+.daily-bar {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    height: 100%;
+}
+
+.daily-bar-success {
+    background: var(--success);
+    opacity: 0.7;
+    min-height: 2px;
+    border-radius: 0 0 2px 2px;
+    transition: opacity 0.15s;
+}
+
+.daily-bar-failure {
+    background: var(--failure);
+    opacity: 0.85;
+    min-height: 2px;
+    border-radius: 2px 2px 0 0;
+    transition: opacity 0.15s;
+}
+
+.daily-bar:hover .daily-bar-success {
+    opacity: 0.9;
+}
+
+.daily-bar:hover .daily-bar-failure {
+    opacity: 1;
+}
+
+.daily-chart-times {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+}
+
+.daily-chart-tooltip {
+    position: fixed;
+    background: rgba(6, 6, 14, 0.95);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--text);
+    pointer-events: none;
+    z-index: 1000;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.15s;
+    backdrop-filter: blur(8px);
+}
+
+.daily-chart-tooltip.visible {
+    opacity: 1;
+}
+
+.tt-date {
+    color: var(--text-dim);
+    margin-bottom: 4px;
+}
+
+.tt-success {
+    color: var(--success);
+}
+
+.tt-failure {
+    color: var(--failure);
 }
 
 
@@ -1589,14 +1619,21 @@ body::before {
         padding: 20px 16px;
     }
 
-    .dash-stats {
-        grid-template-columns: repeat(2, 1fr);
+    .daily-chart-card {
+        padding: 16px;
+    }
+
+    .daily-chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
     }
 }
 
 @media (max-width: 640px) {
-    .dash-stats {
-        grid-template-columns: repeat(2, 1fr);
+    .daily-chart {
+        height: 80px;
+        gap: 2px;
     }
 
     .run-card {
@@ -1617,13 +1654,5 @@ body::before {
     .run-detail-meta {
         flex-direction: column;
         gap: 8px;
-    }
-
-    .stat-card {
-        padding: 14px 16px;
-    }
-
-    .stat-value {
-        font-size: 1.5rem;
     }
 }
