@@ -42,7 +42,7 @@ spec:
                   name: actiondash-secrets
                   key: github-webhook-secret
             - name: REDIS_URL
-              value: "redis://redis:6379/0"  # CHANGEME: your Redis host
+              value: "redis://redis.infra.svc.cluster.local:6379/0"  # CHANGEME: your Redis host
             - name: GITHUB_OAUTH_CLIENT_ID
               valueFrom:
                 secretKeyRef:
