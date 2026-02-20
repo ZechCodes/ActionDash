@@ -1,6 +1,17 @@
 db:
   url: "$DATABASE_URL"
 
+models:
+  - "actiondash.models"
+
+redis:
+  url: "$REDIS_URL"
+  prefix: "actiondash"
+
+notifications:
+  backend: "skrift.lib.notification_backends:RedisBackend"
+  webhook_secret: "$NOTIFICATION_WEBHOOK_SECRET"
+
 auth:
   redirect_base_url: "$AUTH_REDIRECT_BASE_URL"
   allowed_redirect_domains:
@@ -25,3 +36,4 @@ controllers:
   - actiondash.controllers:SettingsController
   - actiondash.controllers:HealthController
   - actiondash.controllers:WebhookController
+  - actiondash.worker_admin:WorkerAdminController

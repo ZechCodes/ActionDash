@@ -4,6 +4,8 @@ import json
 import logging
 from uuid import UUID
 
+import actiondash.worker_monitor  # noqa: F401 — register NOTIFICATION_SENT hook
+
 from litestar import Controller, Request, get, post, delete
 from litestar.exceptions import NotFoundException
 from litestar.response import Response

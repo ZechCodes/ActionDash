@@ -39,6 +39,8 @@
         poll_heartbeat: { icon: "\u2764", cls: "ev-heartbeat", label: "Heartbeat" },
         recovery_completed: { icon: "\u2714", cls: "ev-recovery", label: "Recovery Completed" },
         poll_error: { icon: "\u2718", cls: "ev-error", label: "Poll Error" },
+        worker_down: { icon: "\u2718", cls: "ev-error", label: "Worker Down" },
+        worker_recovered: { icon: "\u2714", cls: "ev-recovery", label: "Worker Recovered" },
     };
 
     function formatTimeAgo(isoStr) {
@@ -80,6 +82,10 @@
                 );
             case "poll_error":
                 return payload.message || "Unknown error";
+            case "worker_down":
+                return "Down for " + (payload.minutes_down || "?") + " minutes";
+            case "worker_recovered":
+                return "Worker is back online";
             default:
                 return JSON.stringify(payload);
         }
@@ -323,6 +329,11 @@
             var errIdx = getBucketIndex(isoTime);
             if (errIdx >= 0) updateChartSegment(errIdx, "error");
         } else if (event === "worker_started") {
+            markHealthy();
+        } else if (event === "worker_down") {
+            healthDot.className = "health-dot stale";
+            healthLabel.textContent = "Worker down";
+        } else if (event === "worker_recovered") {
             markHealthy();
         }
     }

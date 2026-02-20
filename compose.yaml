@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: actiondash
       POSTGRES_PASSWORD: devpassword
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -15,14 +15,26 @@ services:
       timeout: 3s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   init-db:
     build: .
-    command: ["uv", "run", "python", "-m", "actiondash.initdb"]
+    command: ["uv", "run", "skrift", "db", "upgrade", "heads"]
     environment:
       SKRIFT_ENV: compose
       DATABASE_URL: "postgresql+asyncpg://actiondash:devpassword@db:5432/actiondash"
       AUTH_REDIRECT_BASE_URL: "http://localhost:8080"
       SECRET_KEY: "local-dev-secret-key-not-for-production"
+      REDIS_URL: "redis://redis:6379/0"
+      NOTIFICATION_WEBHOOK_SECRET: "local-dev-webhook-secret"
     depends_on:
       db:
         condition: service_healthy
@@ -36,11 +48,33 @@ services:
       DATABASE_URL: "postgresql+asyncpg://actiondash:devpassword@db:5432/actiondash"
       AUTH_REDIRECT_BASE_URL: "http://localhost:8080"
       SECRET_KEY: "local-dev-secret-key-not-for-production"
+      REDIS_URL: "redis://redis:6379/0"
+      NOTIFICATION_WEBHOOK_SECRET: "local-dev-webhook-secret"
+      GITHUB_WEBHOOK_SECRET: "local-dev-github-webhook-secret"
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
       init-db:
         condition: service_completed_successfully
+
+  step-worker:
+    build: .
+    command: ["uv", "run", "python", "-m", "actiondash.step_worker"]
+    environment:
+      SKRIFT_ENV: compose
+      DATABASE_URL: "postgresql+asyncpg://actiondash:devpassword@db:5432/actiondash"
+      AUTH_REDIRECT_BASE_URL: "http://localhost:8080"
+      SECRET_KEY: "local-dev-secret-key-not-for-production"
+      REDIS_URL: "redis://redis:6379/0"
+      NOTIFICATION_WEBHOOK_URL: "http://app:8080/notifications/webhook/"
+      NOTIFICATION_WEBHOOK_SECRET: "local-dev-webhook-secret"
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_started
 
 volumes:
   pgdata:
