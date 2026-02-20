@@ -8,7 +8,7 @@ dependencies = [
     "asyncpg",
     "httpx",
     "redis>=5.0",
-    "skrift>=0.1.0a41",
+    "skrift>=0.1.0a43",
 ]
 
 [dependency-groups]
