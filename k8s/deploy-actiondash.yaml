@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: actiondash
-  namespace: zechcodes
   labels:
     app: actiondash
 spec:
@@ -39,7 +38,7 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: zech-sh-db
+                  name: actiondash-db
                   key: database-url
             - name: SECRET_KEY
               valueFrom:
@@ -52,7 +51,7 @@ spec:
                   name: actiondash-secrets
                   key: github-webhook-secret
             - name: REDIS_URL
-              value: "redis://redis.infra.svc.cluster.local:6379/0"
+              value: "redis://redis:6379/0"  # CHANGEME: your Redis host
             - name: GITHUB_OAUTH_CLIENT_ID
               valueFrom:
                 secretKeyRef:

@@ -1,0 +1,9 @@
+namespace: actiondash  # CHANGEME: your target namespace
+resources:
+  - configmap.yaml
+  - secrets.template.yaml
+  - services.yaml
+  - deploy-actiondash.yaml
+  - deploy-step-worker.yaml
+  - init-db-job.yaml
+  - ingress.yaml

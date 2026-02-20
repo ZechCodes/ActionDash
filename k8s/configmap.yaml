@@ -2,10 +2,9 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: actiondash-config
-  namespace: zechcodes
   labels:
     app: actiondash
 data:
-  AUTH_REDIRECT_BASE_URL: "https://actiondash.zech.sh"
-  SESSION_COOKIE_DOMAIN: ".zech.sh"
-  NOTIFICATION_WEBHOOK_URL: "http://actiondash.zechcodes.svc.cluster.local:8080/notifications/webhook/"
+  AUTH_REDIRECT_BASE_URL: "https://actiondash.example.com"  # CHANGEME: your domain
+  SESSION_COOKIE_DOMAIN: ".example.com"  # CHANGEME: your domain
+  NOTIFICATION_WEBHOOK_URL: "http://actiondash:8080/notifications/webhook/"

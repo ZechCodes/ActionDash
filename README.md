@@ -76,7 +76,21 @@ uv run python -m actiondash.initdb
 
 ### Kubernetes Deployment
 
-See the `k8s/` directory for production manifests including deployments, services, ingress, and configmaps.
+The `k8s/` directory contains production manifests managed with [Kustomize](https://kustomize.io/) (built into `kubectl`).
+
+1. **Set your namespace** in `k8s/kustomization.yaml`
+2. **Edit placeholder values** — search for `CHANGEME` in:
+   - `k8s/configmap.yaml` — domain and cookie settings
+   - `k8s/ingress.yaml` — hostname, ingress class, and cluster-issuer
+   - `k8s/deploy-actiondash.yaml`, `k8s/deploy-step-worker.yaml`, `k8s/init-db-job.yaml` — Redis URL
+3. **Create secrets** — copy `k8s/secrets.template.yaml` to `k8s/secrets.yaml`, fill in base64-encoded values, and apply:
+   ```bash
+   kubectl apply -f k8s/secrets.yaml
+   ```
+4. **Deploy**:
+   ```bash
+   kubectl apply -k k8s/
+   ```
 
 ## Local Development
 
