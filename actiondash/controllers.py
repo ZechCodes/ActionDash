@@ -132,7 +132,7 @@ class DashboardController(Controller):
     async def api_daily_runs(
         self, request: Request, db_session: AsyncSession
     ) -> Response:
-        """JSON API: daily run counts for 28-day bar chart."""
+        """JSON API: daily run counts for 60-day bar chart."""
         repo = request.query_params.get("repo")
         daily = await get_daily_run_counts(db_session, repo_full_name=repo)
         return Response(content={"days": daily}, status_code=200)

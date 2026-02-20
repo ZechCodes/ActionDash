@@ -200,7 +200,7 @@ async def get_run_stats(
 async def get_daily_run_counts(
     session: AsyncSession,
     *,
-    days: int = 28,
+    days: int = 60,
     repo_full_name: str | None = None,
 ) -> list[dict]:
     """Get daily success/failure counts for the last N days."""
