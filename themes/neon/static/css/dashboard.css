@@ -57,8 +57,8 @@
     --text-dim: #5a6a7a;
 
     /* Status */
-    --success: #00ff88;
-    --failure: #ff3366;
+    --success: #00ffcc;
+    --failure: #ff00aa;
     --cancelled: #667788;
     --in-progress: var(--cyan);
     --queued: #667788;
@@ -67,7 +67,7 @@
     --glow-cyan: 0 0 12px rgba(0, 240, 255, 0.35), 0 0 40px rgba(0, 240, 255, 0.08);
     --glow-magenta: 0 0 12px rgba(255, 0, 170, 0.35), 0 0 40px rgba(255, 0, 170, 0.08);
     --glow-purple: 0 0 12px rgba(139, 92, 246, 0.35), 0 0 40px rgba(139, 92, 246, 0.08);
-    --glow-success: 0 0 12px rgba(0, 255, 136, 0.2), 0 0 40px rgba(0, 255, 136, 0.06);
+    --glow-success: 0 0 12px rgba(0, 255, 204, 0.2), 0 0 40px rgba(0, 255, 204, 0.06);
 
     /* Semantic aliases */
     --bg: var(--deep-bg);
@@ -709,11 +709,11 @@ body::before {
 }
 
 .run-card.run-success {
-    border-left: 2px solid rgba(0, 255, 136, 0.3);
+    border-left: 2px solid rgba(0, 255, 204, 0.3);
 }
 
 .run-card.run-failure {
-    border-left: 2px solid rgba(255, 51, 102, 0.3);
+    border-left: 2px solid rgba(255, 0, 170, 0.3);
 }
 
 .run-card.run-cancelled {
@@ -924,12 +924,12 @@ body::before {
 }
 
 .status-icon.success {
-    background: rgba(0, 255, 136, 0.08);
+    background: rgba(0, 255, 204, 0.08);
     color: var(--success);
 }
 
 .status-icon.failure {
-    background: rgba(255, 51, 102, 0.08);
+    background: rgba(255, 0, 170, 0.08);
     color: var(--failure);
 }
 
@@ -1019,11 +1019,11 @@ body::before {
 }
 
 .run-detail-header.run-success {
-    border-left: 4px solid rgba(0, 255, 136, 0.4);
+    border-left: 4px solid rgba(0, 255, 204, 0.4);
 }
 
 .run-detail-header.run-failure {
-    border-left: 4px solid rgba(255, 51, 102, 0.4);
+    border-left: 4px solid rgba(255, 0, 170, 0.4);
 }
 
 .run-detail-header.run-in_progress {
@@ -1053,12 +1053,12 @@ body::before {
 }
 
 .status-badge.success {
-    background: rgba(0, 255, 136, 0.1);
+    background: rgba(0, 255, 204, 0.1);
     color: var(--success);
 }
 
 .status-badge.failure {
-    background: rgba(255, 51, 102, 0.1);
+    background: rgba(255, 0, 170, 0.1);
     color: var(--failure);
 }
 
@@ -1162,11 +1162,11 @@ body::before {
 }
 
 .job-card.job-success {
-    border-left: 2px solid rgba(0, 255, 136, 0.3);
+    border-left: 2px solid rgba(0, 255, 204, 0.3);
 }
 
 .job-card.job-failure {
-    border-left: 2px solid rgba(255, 51, 102, 0.3);
+    border-left: 2px solid rgba(255, 0, 170, 0.3);
 }
 
 .job-card.job-in_progress {
