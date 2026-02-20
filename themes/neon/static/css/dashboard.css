@@ -531,11 +531,19 @@ body::before {
     transition: opacity 0.15s;
 }
 
+.daily-bar-success:only-child {
+    border-radius: 2px;
+}
+
 .daily-bar-failure {
     background: var(--failure);
     opacity: 0.85;
     border-radius: 2px 2px 0 0;
     transition: opacity 0.15s;
+}
+
+.daily-bar-failure:only-child {
+    border-radius: 2px;
 }
 
 .daily-bar-empty {
