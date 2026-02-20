@@ -16,6 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from skrift.config import get_settings
+from skrift.db.base import Base
 
 from actiondash.github_client import GitHubClient
 from actiondash.models import MonitoredRepo, WorkflowRun
@@ -248,7 +249,14 @@ async def _health_server() -> None:
 async def _run() -> None:
     settings = get_settings()
 
-    engine = create_async_engine(settings.db.url, pool_size=2, max_overflow=0)
+    engine_kwargs: dict = {"pool_size": 2, "max_overflow": 0}
+    if settings.db.db_schema:
+        Base.metadata.schema = settings.db.db_schema
+        engine_kwargs["execution_options"] = {
+            "schema_translate_map": {None: settings.db.db_schema},
+        }
+
+    engine = create_async_engine(settings.db.url, **engine_kwargs)
     session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with httpx.AsyncClient(timeout=10.0) as client:
