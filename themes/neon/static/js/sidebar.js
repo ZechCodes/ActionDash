@@ -158,7 +158,7 @@
                 repoItemsEl.innerHTML = '\n' +
                     '                    <div class="sidebar-placeholder">\n' +
                     '                        <p>Connect GitHub to manage repos</p>\n' +
-                    '                        <a href="/auth/login/github" class="sidebar-connect-btn">Connect GitHub</a>\n' +
+                    '                        <a href="/auth/github/login" class="sidebar-connect-btn">Connect GitHub</a>\n' +
                     '                    </div>\n' +
                     '                ';
                 return;
