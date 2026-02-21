@@ -18,7 +18,6 @@ auth:
 
 session:
   max_age: 604800
-  cookie_domain: "$SESSION_COOKIE_DOMAIN"
 
 security_headers:
   enabled: true

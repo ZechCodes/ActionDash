@@ -6,5 +6,4 @@ metadata:
     app: actiondash
 data:
   AUTH_REDIRECT_BASE_URL: "https://actiondash.example.com"  # CHANGEME: your domain
-  SESSION_COOKIE_DOMAIN: ".example.com"  # CHANGEME: your domain
   NOTIFICATION_WEBHOOK_URL: "http://actiondash:8080/notifications/webhook/"
