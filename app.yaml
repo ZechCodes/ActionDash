@@ -16,8 +16,11 @@ auth:
       client_secret: "$GITHUB_OAUTH_CLIENT_SECRET"
       scopes: ["read:user", "user:email", "repo", "admin:repo_hook"]
 
+security_contact: "mailto:security@zech.sh"
+
 session:
   max_age: 604800
+  cookie_name: "adsession"
 
 security_headers:
   enabled: true
