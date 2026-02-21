@@ -275,7 +275,7 @@
         var timeStr = formatLocalTime(bucketStart) + " \u2013 " + formatLocalTime(bucketEnd);
 
         var status = currentBuckets[idx];
-        var statusLabel = status === "up" ? "Operational" : status === "error" ? "Error" : "No Data";
+        var statusLabel = status === "up" ? "Operational" : status === "down" ? "Down" : status === "error" ? "Error" : "No Data";
 
         uptimeTooltip.innerHTML =
             '<div class="tt-time">' + timeStr + '</div>' +

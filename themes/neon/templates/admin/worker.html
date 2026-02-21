@@ -86,6 +86,11 @@
     opacity: 0.85;
 }
 
+.uptime-seg.down {
+    background: var(--failure);
+    opacity: 0.35;
+}
+
 .uptime-seg.unknown {
     background: rgba(90, 106, 122, 0.15);
 }
@@ -148,6 +153,7 @@
 }
 
 .tt-status.up { color: var(--success); }
+.tt-status.down { color: var(--failure); }
 .tt-status.error { color: var(--failure); }
 .tt-status.unknown { color: var(--text-dim); }
 

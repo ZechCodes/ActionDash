@@ -85,7 +85,18 @@ class WorkerAdminController(Controller):
             elif event == "poll_error" and buckets[idx] != "up":
                 buckets[idx] = "error"
 
-        known = [b for b in buckets if b != "unknown"]
+        # Any bucket between the first heartbeat and now with no data is "down"
+        now_idx = min(
+            int((now - cutoff).total_seconds() / (bucket_minutes * 60)),
+            num_buckets - 1,
+        )
+        first_up = next((i for i, b in enumerate(buckets) if b == "up"), None)
+        if first_up is not None:
+            for i in range(first_up, now_idx + 1):
+                if buckets[i] == "unknown":
+                    buckets[i] = "down"
+
+        known = [b for b in buckets if b not in ("unknown",)]
         up_count = sum(1 for b in known if b == "up")
         uptime_pct = round(up_count / len(known) * 100, 1) if known else None
 
