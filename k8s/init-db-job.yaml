@@ -48,6 +48,11 @@ spec:
                 secretKeyRef:
                   name: actiondash-secrets
                   key: github-oauth-client-secret
+            - name: NOTIFICATION_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: actiondash-secrets
+                  key: notification-webhook-secret
           resources:
             requests:
               memory: "128Mi"
