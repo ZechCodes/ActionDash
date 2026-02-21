@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from skrift.config import get_settings
 from skrift.db.base import Base
+import skrift.db.models  # noqa: F401 — ensure all Skrift models are registered
 
 from actiondash.github_client import GitHubClient
 from actiondash.models import MonitoredRepo, WorkflowRun
