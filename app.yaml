@@ -42,6 +42,12 @@ rate_limit:
   paths:
     "/webhooks": 300
 
+logfire:
+  enabled: true
+  service_name: actiondash
+  environment: production
+  console: true
+
 middleware:
   - actiondash.middleware:EnsureNeonThemeMiddleware
 

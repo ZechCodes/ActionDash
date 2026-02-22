@@ -14,6 +14,12 @@ session:
 security_headers:
   enabled: false
 
+logfire:
+  enabled: true
+  service_name: actiondash
+  environment: dev
+  console: true
+
 rate_limit:
   enabled: false
 
