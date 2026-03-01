@@ -1647,13 +1647,27 @@ body::before {
     }
 
     .run-card {
-        grid-template-columns: 30px 1fr auto;
+        grid-template-columns: 30px 1fr;
     }
 
-    .run-actor .actor-name,
-    .run-actor .actor-time,
+    .run-actor {
+        grid-column: 2;
+        gap: 6px;
+        font-family: var(--font-mono);
+        font-size: 0.62rem;
+        color: var(--text-dim);
+    }
+
     .run-actor .actor-avatar {
         display: none;
+    }
+
+    .run-actor .actor-name {
+        font-size: 0.68rem;
+    }
+
+    .run-actor .actor-time {
+        font-size: 0.58rem;
     }
 
     .dash-main {

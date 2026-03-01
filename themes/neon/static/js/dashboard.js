@@ -35,8 +35,17 @@
                 sseKeptAlive = true;
                 var sn = window.__skriftNotifications;
                 if (sn && sn._onBlur) {
+                    // Disable Skrift's default blur/focus handlers so SSE stays alive
                     window.removeEventListener("blur", sn._onBlur);
                     window.removeEventListener("focus", sn._onFocus);
+
+                    // On mobile, browsers kill background connections despite the above.
+                    // Reconnect via visibilitychange when the page regains focus.
+                    document.addEventListener("visibilitychange", function () {
+                        if (document.visibilityState === "visible" && sn.status !== "connected") {
+                            sn._onFocus();
+                        }
+                    });
                 }
             }
         } else if (e.detail.status === "suspended") {
