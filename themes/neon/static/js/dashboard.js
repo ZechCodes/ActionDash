@@ -65,12 +65,65 @@
         handleNotification(e.detail);
     });
 
+    // --- Browser system notifications ---
+
+    function requestNotificationPermission() {
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+    }
+
+    // Request permission on first user interaction
+    document.addEventListener("click", function onFirstClick() {
+        requestNotificationPermission();
+        document.removeEventListener("click", onFirstClick);
+    }, { once: true });
+
+    function showSystemNotification(title, body, url) {
+        if (!("Notification" in window) || Notification.permission !== "granted") return;
+        if (document.visibilityState === "visible") return;
+
+        var n = new Notification(title, {
+            body: body,
+            icon: document.querySelector('link[rel="icon"]')?.href || "",
+            tag: url || title,
+        });
+        if (url) {
+            n.onclick = function () {
+                window.focus();
+                window.location.href = url;
+                n.close();
+            };
+        }
+    }
+
+    function notifyRunEvent(run, action) {
+        var repo = run.repo_name || run.repo_full_name;
+        var workflow = run.workflow_name || "Workflow";
+
+        if (action === "requested" || (action === "in_progress" && !document.querySelector('[data-run-id="' + run.run_id + '"]'))) {
+            showSystemNotification(
+                workflow + " started",
+                repo + " #" + run.run_number + " on " + (run.head_branch || "unknown"),
+                "/runs/" + run.run_id
+            );
+        } else if (action === "completed" && run.conclusion) {
+            var icon = run.conclusion === "success" ? "Passed" : run.conclusion === "failure" ? "Failed" : run.conclusion.charAt(0).toUpperCase() + run.conclusion.slice(1);
+            showSystemNotification(
+                workflow + " " + icon.toLowerCase(),
+                repo + " #" + run.run_number + " — " + icon,
+                "/runs/" + run.run_id
+            );
+        }
+    }
+
     // --- Notification handler ---
 
     function handleNotification(data) {
         if (data.type === "workflow_run" && data.run) {
             // When filtering by repo, only show updates for that repo
             if (currentRepo && data.run.repo_full_name !== currentRepo) return;
+            notifyRunEvent(data.run, data.action);
             updateWorkflowRun(data.run, data.action);
         } else if (data.type === "workflow_job" && data.job) {
             if (currentRepo && data.job.repo_full_name !== currentRepo) return;
