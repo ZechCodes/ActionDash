@@ -5,6 +5,7 @@ description = "Realtime GitHub Actions dashboard built with Skrift"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "certifi>=2026.10.19",
     "asyncpg",
     "httpx",
     "logfire[asgi,sqlalchemy,httpx]",
